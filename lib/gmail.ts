@@ -275,10 +275,25 @@ export async function replyToEmail(
 
 // Get OAuth URL for Gmail
 export function getGmailAuthUrl(): string {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+  // Debug logging (remove in production)
+  console.log('Gmail OAuth Config:', {
+    clientId: clientId ? `${clientId.substring(0, 20)}...` : 'MISSING',
+    clientSecret: clientSecret ? 'SET' : 'MISSING',
+    redirectUri: redirectUri || 'MISSING'
+  });
+
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error('Missing Google OAuth credentials. Please check environment variables.');
+  }
+
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    clientId,
+    clientSecret,
+    redirectUri
   );
 
   const scopes = [
