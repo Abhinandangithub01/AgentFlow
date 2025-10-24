@@ -120,7 +120,8 @@ openssl rand -hex 32
 - **[Setup Guide](./SETUP.md)** - Detailed setup instructions
 - **[Deployment](./docs/DEPLOYMENT.md)** - Deploy to AWS Amplify
 - **[Auth0 Setup](./docs/AUTH0_SETUP.md)** - Configure authentication
-- **[Gmail Integration](./docs/GMAIL_INTEGRATION.md)** - Connect Gmail
+- **[Google OAuth Setup](./GOOGLE_OAUTH_SETUP.md)** - Enable Gmail integration
+- **[Gmail Integration](./docs/GMAIL_INTEGRATION.md)** - Gmail API usage
 - **[GROQ AI](./docs/GROQ_AI.md)** - AI capabilities and usage
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and fixes
 

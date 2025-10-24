@@ -66,6 +66,9 @@ export default function IntegrationsPage() {
 
   // Check for OAuth callback success
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     const params = new URLSearchParams(window.location.search);
     const connected = params.get('connected');
     const error = params.get('error');
