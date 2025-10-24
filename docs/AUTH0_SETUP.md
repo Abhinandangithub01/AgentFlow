@@ -3,7 +3,7 @@
 ## 🐛 The Problem
 
 **Error**: HTTP 500 - Internal Server Error when trying to login
-**URL**: `https://main.d13senln5grdln.amplifyapp.com/api/auth/login`
+**URL**: `https://main.d13aenlm5qrdln.amplifyapp.com/api/auth/login`
 
 **Root Cause**: Auth0 is not configured to accept callbacks from your Amplify domain.
 
@@ -15,7 +15,7 @@
 
 Your Amplify URL is:
 ```
-https://main.d13senln5grdln.amplifyapp.com
+https://main.d13aenlm5qrdln.amplifyapp.com
 ```
 
 ### Step 2: Update Auth0 Application Settings
@@ -34,19 +34,19 @@ https://main.d13senln5grdln.amplifyapp.com
    **Allowed Callback URLs** (add these):
    ```
    http://localhost:3000/api/auth/callback,
-   https://main.d13senln5grdln.amplifyapp.com/api/auth/callback
+   https://main.d13aenlm5qrdln.amplifyapp.com/api/auth/callback
    ```
 
    **Allowed Logout URLs** (add these):
    ```
    http://localhost:3000,
-   https://main.d13senln5grdln.amplifyapp.com
+   https://main.d13aenlm5qrdln.amplifyapp.com
    ```
 
    **Allowed Web Origins** (add these):
    ```
    http://localhost:3000,
-   https://main.d13senln5grdln.amplifyapp.com
+   https://main.d13aenlm5qrdln.amplifyapp.com
    ```
 
 4. **Click "Save Changes"**
@@ -68,7 +68,7 @@ https://main.d13senln5grdln.amplifyapp.com
 
    **Change to**:
    ```
-   AUTH0_BASE_URL=https://main.d13senln5grdln.amplifyapp.com
+   AUTH0_BASE_URL=https://main.d13aenlm5qrdln.amplifyapp.com
    ```
 
 3. **Verify Other Variables**:
@@ -96,7 +96,7 @@ After making these changes:
 1. **Wait for Amplify to redeploy** (~3-5 minutes)
 
 2. **Test Login**:
-   - Visit: `https://main.d13senln5grdln.amplifyapp.com`
+   - Visit: `https://main.d13aenlm5qrdln.amplifyapp.com`
    - Click "Sign In with Auth0"
    - Should redirect to Auth0 login page
    - After login, should redirect back to your app
@@ -150,24 +150,24 @@ After making these changes:
 
 **Allowed Callback URLs**:
 ```
-http://localhost:3000/api/auth/callback, https://main.d13senln5grdln.amplifyapp.com/api/auth/callback
+http://localhost:3000/api/auth/callback, https://main.d13aenlm5qrdln.amplifyapp.com/api/auth/callback
 ```
 
 **Allowed Logout URLs**:
 ```
-http://localhost:3000, https://main.d13senln5grdln.amplifyapp.com
+http://localhost:3000, https://main.d13aenlm5qrdln.amplifyapp.com
 ```
 
 **Allowed Web Origins**:
 ```
-http://localhost:3000, https://main.d13senln5grdln.amplifyapp.com
+http://localhost:3000, https://main.d13aenlm5qrdln.amplifyapp.com
 ```
 
 ### AWS Amplify - Environment Variables:
 
 | Key | Value |
 |-----|-------|
-| AUTH0_BASE_URL | `https://main.d13senln5grdln.amplifyapp.com` |
+| AUTH0_BASE_URL | `https://main.d13aenlm5qrdln.amplifyapp.com` |
 | AUTH0_ISSUER_BASE_URL | `https://genai-9196568934621967.jp.auth0.com` |
 | AUTH0_CLIENT_ID | `VutxaWRzFF3Te9UZ7zZ4u52ldfDsaLv5` |
 | AUTH0_CLIENT_SECRET | `0SAjmFIsuILZIGzGlqEIKJ9-yGUt-WXOCN_mOEIktjADw9-OkfuYxumB3T-W61Eh` |

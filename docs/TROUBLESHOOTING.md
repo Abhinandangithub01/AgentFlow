@@ -31,7 +31,7 @@ Add **ALL** of these environment variables:
 | Variable Name | Value |
 |---------------|-------|
 | `AUTH0_SECRET` | `a7b9c3d2e5f8g1h4i6j9k2l5m8n1o4p7q0r3s6t9u2v5w8x1y4z7a0b3c6d9e2f5` |
-| `AUTH0_BASE_URL` | `https://main.d13senln5grdln.amplifyapp.com` |
+| `AUTH0_BASE_URL` | `https://main.d13aenlm5qrdln.amplifyapp.com` |
 | `AUTH0_ISSUER_BASE_URL` | `https://genai-9196568934621967.jp.auth0.com` |
 | `AUTH0_CLIENT_ID` | `VutxaWRzFF3Te9UZ7zZ4u52ldfDsaLv5` |
 | `AUTH0_CLIENT_SECRET` | `0SAjmFIsuILZIGzGlqEIKJ9-yGUt-WXOCN_mOEIktjADw9-OkfuYxumB3T-W61Eh` |
@@ -50,7 +50,7 @@ Add **ALL** of these environment variables:
 
 After redeployment:
 
-1. Visit: `https://main.d13senln5grdln.amplifyapp.com`
+1. Visit: `https://main.d13aenlm5qrdln.amplifyapp.com`
 2. Click "Sign In with Auth0"
 3. Should redirect to Auth0 login page ✅
 4. After login, should redirect back to your dashboard ✅
@@ -86,7 +86,7 @@ Without these, the `/api/auth/login` route **cannot initialize** and returns a 5
 
 ```
 AUTH0_SECRET=a7b9c3d2e5f8g1h4i6j9k2l5m8n1o4p7q0r3s6t9u2v5w8x1y4z7a0b3c6d9e2f5
-AUTH0_BASE_URL=https://main.d13senln5grdln.amplifyapp.com
+AUTH0_BASE_URL=https://main.d13aenlm5qrdln.amplifyapp.com
 AUTH0_ISSUER_BASE_URL=https://genai-9196568934621967.jp.auth0.com
 AUTH0_CLIENT_ID=VutxaWRzFF3Te9UZ7zZ4u52ldfDsaLv5
 AUTH0_CLIENT_SECRET=0SAjmFIsuILZIGzGlqEIKJ9-yGUt-WXOCN_mOEIktjADw9-OkfuYxumB3T-W61Eh
