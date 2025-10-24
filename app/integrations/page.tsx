@@ -64,9 +64,9 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Check for OAuth callback success
+  // Check for OAuth callback success (client-side only)
   useEffect(() => {
-    // Only run on client side
+    // Only run on client side to prevent hydration mismatch
     if (typeof window === 'undefined') return;
     
     const params = new URLSearchParams(window.location.search);
