@@ -18,7 +18,7 @@ npm run dev
 
 Visit `http://localhost:3000` and sign in with Auth0.
 
-## 🚀 Features
+## ✨ Features
 
 - **Autonomous AI Agents**: Deploy agents that work 24/7 on your behalf
 - **Beautiful UI**: Crystal-clear activity feeds and dashboards
@@ -26,6 +26,7 @@ Visit `http://localhost:3000` and sign in with Auth0.
 - **Real-time Updates**: See exactly what your agents are doing
 - **Multi-Agent Support**: Run multiple agents simultaneously
 - **Fine-grained Permissions**: Control exactly what agents can do
+- **Gmail Integration**: Connect and manage your Gmail account
 
 ## 🏗️ Tech Stack
 
