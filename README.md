@@ -1,6 +1,22 @@
-# Agent Platform - Autonomous AI Agents with Beautiful UI
+# AgentFlow - AI Agent Platform
 
-A production-ready platform for deploying and managing autonomous AI agents with Auth0 for AI Agents integration. Built for the Auth0 AI Challenge 2025.
+**AgentFlow** is a modern AI agent platform built with Next.js 14, Auth0, and GROQ AI. Create, manage, and deploy intelligent agents that automate tasks, analyze emails, and integrate with various services.
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.local.example .env.local
+# Edit .env.local with your credentials
+
+# Run development server
+npm run dev
+```
+
+Visit `http://localhost:3000` and sign in with Auth0.
 
 ## 🚀 Features
 
@@ -98,19 +114,26 @@ Generate a secret for `AUTH0_SECRET`:
 openssl rand -hex 32
 ```
 
-## 🚀 Deployment to AWS Amplify
+## 📚 Documentation
 
-### Option 1: Deploy via Amplify Console
+- **[Quick Start](./QUICKSTART.md)** - Get up and running in 5 minutes
+- **[Setup Guide](./SETUP.md)** - Detailed setup instructions
+- **[Deployment](./docs/DEPLOYMENT.md)** - Deploy to AWS Amplify
+- **[Auth0 Setup](./docs/AUTH0_SETUP.md)** - Configure authentication
+- **[Gmail Integration](./docs/GMAIL_INTEGRATION.md)** - Connect Gmail
+- **[GROQ AI](./docs/GROQ_AI.md)** - AI capabilities and usage
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and fixes
 
-1. Push code to CodeCommit:
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
+## 🚀 Deployment
 
-2. Open [AWS Amplify Console](https://console.aws.amazon.com/amplify)
-3. Click "New app" → "Host web app"
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructions.
+
+**Quick Deploy to AWS Amplify:**
+
+1. Push code to GitHub
+2. Connect repository in Amplify Console
+3. Add environment variables
+4. Deploy
 4. Select "AWS CodeCommit" as source
 5. Choose your repository and branch
 6. Configure build settings (auto-detected from amplify.yml)
