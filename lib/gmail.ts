@@ -141,7 +141,7 @@ export async function sendEmail(
 
     return {
       success: true,
-      messageId: response.data.id,
+      messageId: response.data.id || undefined,
     };
   } catch (error) {
     console.error('Error sending email:', error);
@@ -265,7 +265,7 @@ export async function replyToEmail(
 
     return {
       success: true,
-      messageId: response.data.id,
+      messageId: response.data.id || undefined,
     };
   } catch (error) {
     console.error('Error replying to email:', error);
