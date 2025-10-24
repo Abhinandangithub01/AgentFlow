@@ -22,21 +22,29 @@ export async function POST(request: Request) {
 
     // Handle Gmail OAuth
     if (service.toLowerCase() === 'gmail') {
-      const authUrl = getGmailAuthUrl();
-      
-      return NextResponse.json({ 
-        success: true,
-        requiresOAuth: true,
-        authUrl,
-        service: 'gmail',
-        message: 'Redirect to Google OAuth',
-        scopes: [
-          'gmail.readonly',
-          'gmail.send',
-          'gmail.modify',
-          'gmail.labels'
-        ]
-      });
+      try {
+        const authUrl = getGmailAuthUrl();
+        
+        return NextResponse.json({ 
+          success: true,
+          requiresOAuth: true,
+          authUrl,
+          service: 'gmail',
+          message: 'Redirect to Google OAuth',
+          scopes: [
+            'gmail.readonly',
+            'gmail.send',
+            'gmail.modify',
+            'gmail.labels'
+          ]
+        });
+      } catch (error) {
+        console.error('Gmail OAuth error:', error);
+        return NextResponse.json({ 
+          error: error instanceof Error ? error.message : 'Failed to generate Gmail OAuth URL',
+          details: 'Check server logs for environment variable configuration'
+        }, { status: 500 });
+      }
     }
 
     // For other services, simulate connection
