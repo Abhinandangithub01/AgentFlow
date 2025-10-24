@@ -36,6 +36,8 @@ export async function GET() {
       status: envCheck,
       partialValues: envValues,
       allEnvVarsCount: Object.keys(process.env).length,
+      timestamp: new Date().toISOString(),
+      buildInfo: 'Rebuild triggered to load new environment variables'
     });
   } catch (error) {
     console.error('Error checking environment:', error);
