@@ -1,48 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-
-// Mock data for MVP - replace with database in production
-const mockAgents = [
-  {
-    id: '1',
-    name: 'Email Assistant',
-    type: 'email',
-    status: 'active',
-    lastRun: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    actionsToday: 34,
-    description: 'Manages inbox and drafts replies',
-    config: {
-      schedule: 'hourly',
-      services: ['gmail', 'slack']
-    }
-  },
-  {
-    id: '2',
-    name: 'Invoice Tracker',
-    type: 'finance',
-    status: 'active',
-    lastRun: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    actionsToday: 3,
-    description: 'Tracks payments and sends reminders',
-    config: {
-      schedule: 'daily',
-      services: ['freshbooks', 'gmail']
-    }
-  },
-  {
-    id: '3',
-    name: 'Research Agent',
-    type: 'research',
-    status: 'paused',
-    lastRun: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    actionsToday: 0,
-    description: 'Monitors industry news and trends',
-    config: {
-      schedule: 'daily',
-      services: ['web']
-    }
-  }
-];
+import { agentManager } from '@/lib/agent-manager';
+import { AgentType } from '@/types/agent';
 
 export async function GET() {
   try {
@@ -52,8 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // In production, fetch agents from database filtered by user ID
-    const userAgents = mockAgents;
+    // Fetch agents using agent manager
+    const userAgents = await agentManager.listAgents(session.user.sub);
 
     return NextResponse.json({ agents: userAgents });
   } catch (error) {
@@ -81,17 +40,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // In production, save to database
-    const newAgent = {
-      id: String(Date.now()),
+    // Create agent using agent manager
+    const newAgent = await agentManager.createAgent(
+      session.user.sub,
       name,
-      type,
-      status: 'paused',
-      lastRun: new Date().toISOString(),
-      actionsToday: 0,
-      description,
-      config: config || { schedule: 'daily', services: [] }
-    };
+      type as AgentType,
+      config || {}
+    );
 
     return NextResponse.json({ agent: newAgent }, { status: 201 });
   } catch (error) {
