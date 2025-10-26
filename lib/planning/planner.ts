@@ -185,8 +185,8 @@ Example:
 
         // Check if dependencies are met
         if (step.dependencies && step.dependencies.length > 0) {
-          const dependenciesMet = step.dependencies.every(depIndex => {
-            const depStep = plan.steps[depIndex];
+          const dependenciesMet = step.dependencies.every((depId: string) => {
+            const depStep = plan.steps.find(s => s.id === depId);
             return depStep && depStep.status === 'completed';
           });
 

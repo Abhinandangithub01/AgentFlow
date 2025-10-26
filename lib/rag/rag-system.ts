@@ -9,19 +9,28 @@ import { RAGKnowledgeBase, RAGQuery, RAGResult } from '@/types/agent';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RAGSystem {
-  private embeddings: OpenAIEmbeddings;
+  private embeddings: OpenAIEmbeddings | null = null;
   private textSplitter: RecursiveCharacterTextSplitter;
 
   constructor() {
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: 'text-embedding-3-small',
-    });
-
+    // Lazy initialization of embeddings
     this.textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
     });
+  }
+
+  private getEmbeddings(): OpenAIEmbeddings {
+    if (!this.embeddings) {
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OPENAI_API_KEY is not configured');
+      }
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: 'text-embedding-3-small',
+      });
+    }
+    return this.embeddings;
   }
 
   /**
@@ -92,7 +101,7 @@ export class RAGSystem {
         // Generate embeddings and store
         for (let i = 0; i < chunks.length; i++) {
           const chunk = chunks[i];
-          const embedding = await this.embeddings.embedQuery(chunk.pageContent);
+          const embedding = await this.getEmbeddings().embedQuery(chunk.pageContent);
 
           const vectorId = `vec_${uuidv4()}`;
           await DynamoDBService.put(TABLES.VECTORS, {
@@ -148,7 +157,7 @@ export class RAGSystem {
     }
 
     // Generate query embedding
-    const queryEmbedding = await this.embeddings.embedQuery(query.query);
+    const queryEmbedding = await this.getEmbeddings().embedQuery(query.query);
 
     // Get all vectors for this knowledge base
     const vectors = await DynamoDBService.query(

@@ -83,7 +83,7 @@ export class AgentMemorySystem {
 
     // Filter by importance
     if (query.minImportance !== undefined) {
-      memories = memories.filter(m => m.importance >= query.minImportance);
+      memories = memories.filter(m => m.importance >= (query.minImportance ?? 0));
     }
 
     // Sort by importance and recency

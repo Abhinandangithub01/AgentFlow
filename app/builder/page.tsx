@@ -289,8 +289,13 @@ function OverviewTab() {
 }
 
 // Capability Card Component
-function CapabilityCard({ icon: Icon, title, description, color }: any) {
-  const colorClasses = {
+function CapabilityCard({ icon: Icon, title, description, color }: {
+  icon: any;
+  title: string;
+  description: string;
+  color: 'blue' | 'purple' | 'green' | 'orange';
+}) {
+  const colorClasses: Record<string, string> = {
     blue: 'from-blue-500 to-blue-600',
     purple: 'from-purple-500 to-purple-600',
     green: 'from-green-500 to-green-600',

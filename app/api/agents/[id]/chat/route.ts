@@ -7,9 +7,19 @@ import { rulesEngine } from '@/lib/rules/rules-engine';
 import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Initialize OpenAI client only if API key is available
+const getOpenAIClient = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+};
 
 export async function POST(
   request: NextRequest,
@@ -120,6 +130,7 @@ Always be helpful, accurate, and concise.`;
     ];
 
     // Call OpenAI
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: agent.config?.model || 'gpt-4-turbo-preview',
       messages,
