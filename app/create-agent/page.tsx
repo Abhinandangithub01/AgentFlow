@@ -109,8 +109,8 @@ export default function CreateAgentPage() {
   const [step, setStep] = useState(1);
   const [agentName, setAgentName] = useState('');
   const [agentSchedule, setAgentSchedule] = useState('hourly');
-  const [connectedServices, setConnectedServices] = useState<Record<string, boolean>>({});
-  const [isConnecting, setIsConnecting] = useState<string | null>(null);
+  const [connectedServices, setConnectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -118,6 +118,26 @@ export default function CreateAgentPage() {
       router.push('/');
     }
   }, [user, isLoading]);
+
+  // Fetch connected services
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchConnections = async () => {
+      try {
+        const res = await fetch('/api/connections');
+        if (res.ok) {
+          const data = await res.json();
+          const services = data.connections?.map((conn: any) => conn.service) || [];
+          setConnectedServices(services);
+        }
+      } catch (error) {
+        console.error('Failed to fetch connections:', error);
+      }
+    };
+
+    fetchConnections();
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -131,27 +151,6 @@ export default function CreateAgentPage() {
     return null;
   }
 
-  const handleConnectService = async (service: string) => {
-    setIsConnecting(service);
-    
-    try {
-      // Simulate OAuth connection
-      const response = await fetch('/api/services/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service })
-      });
-      
-      if (response.ok) {
-        setConnectedServices(prev => ({ ...prev, [service]: true }));
-      }
-    } catch (error) {
-      console.error('Connection error:', error);
-      alert(`Failed to connect ${service}. Please try again.`);
-    } finally {
-      setIsConnecting(null);
-    }
-  };
 
   const handleCreateAgent = async () => {
     if (!selectedTemplate || !agentName.trim()) return;
@@ -168,7 +167,7 @@ export default function CreateAgentPage() {
           description: selectedTemplate.description,
           config: {
             schedule: agentSchedule,
-            services: Object.keys(connectedServices).filter(s => connectedServices[s]),
+            services: selectedServices,
             template: selectedTemplate.id
           }
         })
@@ -355,43 +354,90 @@ export default function CreateAgentPage() {
 
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Connected Services
+                    Select Services for Agent
                   </label>
-                  <div className="space-y-3">
-                    {selectedTemplate.services.map((service, idx) => {
-                      const isConnected = connectedServices[service.toLowerCase()];
-                      const isLoading = isConnecting === service.toLowerCase();
-                      
-                      return (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm font-medium text-gray-900">{service}</span>
-                            {isConnected && (
-                              <span className="text-xs bg-success-50 text-success-600 px-2 py-1 rounded-full font-medium">
-                                ✓ Connected
-                              </span>
+                  {connectedServices.length === 0 ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800 mb-2">
+                        No services connected yet. Connect services first to use them with agents.
+                      </p>
+                      <button
+                        onClick={() => router.push('/integrations')}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        Go to Integrations →
+                      </button>
+                    </div>
+                  ) : selectedTemplate.type === 'custom' ? (
+                    // Custom Agent: Multi-select dropdown
+                    <div className="space-y-3">
+                      <select
+                        multiple
+                        value={selectedServices}
+                        onChange={(e) => {
+                          const values = Array.from(e.target.selectedOptions, option => option.value);
+                          setSelectedServices(values);
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent min-h-[120px]"
+                      >
+                        {connectedServices.map((service) => (
+                          <option key={service} value={service}>
+                            {service.charAt(0).toUpperCase() + service.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-sm text-gray-600">
+                        Hold Ctrl/Cmd to select multiple services. Selected: {selectedServices.length}
+                      </p>
+                      {selectedServices.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedServices.map(service => (
+                            <span key={service} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-700">
+                              {service.charAt(0).toUpperCase() + service.slice(1)}
+                              <button
+                                onClick={() => setSelectedServices(prev => prev.filter(s => s !== service))}
+                                className="ml-2 text-primary-600 hover:text-primary-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Template Agent: Show required services
+                    <div className="space-y-3">
+                      {selectedTemplate.services.map((service, idx) => {
+                        const serviceLower = service.toLowerCase();
+                        const isConnected = connectedServices.includes(serviceLower);
+                        
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm font-medium text-gray-900">{service}</span>
+                              {isConnected && (
+                                <span className="text-xs bg-success-100 text-success-700 px-2 py-1 rounded-full">✓ Connected</span>
+                              )}
+                            </div>
+                            {!isConnected && (
+                              <button 
+                                onClick={() => router.push('/integrations')}
+                                className="text-sm font-medium text-primary-600 hover:text-primary-700 px-4 py-2 rounded-lg hover:bg-primary-50"
+                              >
+                                Connect
+                              </button>
                             )}
                           </div>
-                          <button
-                            onClick={() => !isConnected && handleConnectService(service.toLowerCase())}
-                            disabled={isConnected || isLoading}
-                            className={`text-sm font-medium px-4 py-2 rounded-lg ${
-                              isConnected 
-                                ? 'bg-success-100 text-success-700 cursor-not-allowed' 
-                                : 'text-primary-600 hover:bg-primary-50'
-                            }`}
-                          >
-                            {isLoading ? 'Connecting...' : isConnected ? 'Connected' : 'Connect'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {Object.keys(connectedServices).length > 0 
-                      ? '✓ Services will be authorized via Auth0 Token Vault' 
-                      : 'Click Connect to authorize services via Auth0'}
-                  </p>
+                        );
+                      })}
+                      <p className="text-sm text-gray-600">
+                        {selectedTemplate.services.every(s => connectedServices.includes(s.toLowerCase()))
+                          ? '✓ All required services are connected'
+                          : '⚠ Connect missing services to proceed'}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
@@ -417,7 +463,7 @@ export default function CreateAgentPage() {
               </button>
               <button
                 onClick={() => setStep(3)}
-                disabled={!agentName.trim()}
+                disabled={!agentName.trim() || (selectedTemplate.type === 'custom' && selectedServices.length === 0)}
                 className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
@@ -474,9 +520,9 @@ export default function CreateAgentPage() {
                   <div className="py-3">
                     <span className="text-gray-600 block mb-2">Services</span>
                     <div className="flex flex-wrap gap-2">
-                      {selectedTemplate.services.map((service, idx) => (
+                      {(selectedTemplate.type === 'custom' ? selectedServices : selectedTemplate.services).map((service, idx) => (
                         <span key={idx} className="bg-primary-50 text-primary-700 px-3 py-1 rounded-lg text-sm font-medium">
-                          {service}
+                          {service.charAt(0).toUpperCase() + service.slice(1)}
                         </span>
                       ))}
                     </div>

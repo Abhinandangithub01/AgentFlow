@@ -10,6 +10,7 @@ import { EmailIcon, InvoiceIcon, ResearchIcon, CalendarIcon, SocialIcon, CustomA
 interface AgentTemplate {
   id: string;
   name: string;
+  type: string;
   description: string;
   icon: any;
   features: string[];
@@ -20,6 +21,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'email',
     name: 'Email Assistant',
+    type: 'email_assistant',
     description: 'Automatically manages your inbox, categorizes emails, and drafts replies',
     icon: EmailIcon,
     features: ['Smart email categorization', 'Auto-draft professional replies', 'Urgent message flagging'],
@@ -28,6 +30,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'invoice',
     name: 'Invoice Tracker',
+    type: 'invoice_tracker',
     description: 'Tracks payments, sends reminders, and monitors your cash flow',
     icon: InvoiceIcon,
     features: ['Payment status monitoring', 'Automated reminders', 'Overdue alerts'],
@@ -36,6 +39,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'research',
     name: 'Research Agent',
+    type: 'research_agent',
     description: 'Monitors industry news, competitors, and trends relevant to you',
     icon: ResearchIcon,
     features: ['Daily news digests', 'Competitor monitoring', 'Trend analysis'],
@@ -44,6 +48,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'calendar',
     name: 'Calendar Assistant',
+    type: 'calendar_assistant',
     description: 'Manages meetings, schedules, and coordinates with your team',
     icon: CalendarIcon,
     features: ['Smart scheduling', 'Meeting coordination', 'Reminder management'],
@@ -52,6 +57,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'social',
     name: 'Social Media Manager',
+    type: 'social_media_manager',
     description: 'Schedules posts, monitors engagement, and manages your social presence',
     icon: SocialIcon,
     features: ['Post scheduling', 'Engagement tracking', 'Content suggestions'],
@@ -60,6 +66,7 @@ const templates: AgentTemplate[] = [
   {
     id: 'custom',
     name: 'Custom Agent',
+    type: 'custom',
     description: 'Build your own agent with custom capabilities and integrations',
     icon: CustomAgentIcon,
     features: ['Custom workflows', 'Flexible integrations', 'Tailored automation'],
@@ -72,12 +79,75 @@ export default function AgentsPage() {
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
+  const [connectedServices, setConnectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [agentName, setAgentName] = useState('');
+  const [agentSchedule, setAgentSchedule] = useState('realtime');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/');
     }
   }, [user, isLoading]);
+
+  // Fetch connected services
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchConnections = async () => {
+      try {
+        const res = await fetch('/api/connections');
+        if (res.ok) {
+          const data = await res.json();
+          const services = data.connections?.map((conn: any) => conn.service) || [];
+          setConnectedServices(services);
+        }
+      } catch (error) {
+        console.error('Failed to fetch connections:', error);
+      }
+    };
+
+    fetchConnections();
+  }, [user]);
+
+  const handleCreateAgent = async () => {
+    if (!agentName.trim() || selectedServices.length === 0) return;
+
+    setIsCreating(true);
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: agentName,
+          type: selectedTemplate?.type || 'custom',
+          description: selectedTemplate?.description || 'Custom agent',
+          config: {
+            schedule: agentSchedule,
+            services: selectedServices,
+            template: selectedTemplate?.id
+          }
+        })
+      });
+
+      if (response.ok) {
+        alert('🎉 Agent created successfully!');
+        setShowCreateModal(false);
+        setSelectedTemplate(null);
+        setAgentName('');
+        setSelectedServices([]);
+        router.refresh();
+      } else {
+        throw new Error('Failed to create agent');
+      }
+    } catch (error) {
+      console.error('Creation error:', error);
+      alert('Failed to create agent. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -235,24 +305,96 @@ export default function AgentsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Connected Services
+                          Select Services for Agent
                         </label>
-                        <div className="space-y-3">
-                          {selectedTemplate.services.map((service, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                              <span className="text-sm font-medium text-gray-900">{service}</span>
-                              <button 
-                                onClick={() => router.push('/integrations')}
-                                className="text-sm font-medium text-primary-600 hover:text-primary-700 px-4 py-2 rounded-lg hover:bg-primary-50"
-                              >
-                                Connect
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2">
-                          You'll authorize these services via Auth0
-                        </p>
+                        {connectedServices.length === 0 ? (
+                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-sm text-yellow-800 mb-2">
+                              No services connected yet. Connect services first to use them with agents.
+                            </p>
+                            <button
+                              onClick={() => {
+                                setShowCreateModal(false);
+                                router.push('/integrations');
+                              }}
+                              className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                            >
+                              Go to Integrations →
+                            </button>
+                          </div>
+                        ) : selectedTemplate?.type === 'custom' ? (
+                          // Custom Agent: Multi-select dropdown
+                          <div className="space-y-3">
+                            <select
+                              multiple
+                              value={selectedServices}
+                              onChange={(e) => {
+                                const values = Array.from(e.target.selectedOptions, option => option.value);
+                                setSelectedServices(values);
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent min-h-[120px]"
+                            >
+                              {connectedServices.map((service) => (
+                                <option key={service} value={service}>
+                                  {service.charAt(0).toUpperCase() + service.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-sm text-gray-600">
+                              Hold Ctrl/Cmd to select multiple services. Selected: {selectedServices.length}
+                            </p>
+                            {selectedServices.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedServices.map(service => (
+                                  <span key={service} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-700">
+                                    {service.charAt(0).toUpperCase() + service.slice(1)}
+                                    <button
+                                      onClick={() => setSelectedServices(prev => prev.filter(s => s !== service))}
+                                      className="ml-2 text-primary-600 hover:text-primary-800"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          // Template Agent: Show required services
+                          <div className="space-y-3">
+                            {selectedTemplate?.services.map((service, idx) => {
+                              const serviceLower = service.toLowerCase();
+                              const isConnected = connectedServices.includes(serviceLower);
+                              
+                              return (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center space-x-3">
+                                    <span className="text-sm font-medium text-gray-900">{service}</span>
+                                    {isConnected && (
+                                      <span className="text-xs bg-success-100 text-success-700 px-2 py-1 rounded-full">✓ Connected</span>
+                                    )}
+                                  </div>
+                                  {!isConnected && (
+                                    <button 
+                                      onClick={() => {
+                                        setShowCreateModal(false);
+                                        router.push('/integrations');
+                                      }}
+                                      className="text-sm font-medium text-primary-600 hover:text-primary-700 px-4 py-2 rounded-lg hover:bg-primary-50"
+                                    >
+                                      Connect
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            <p className="text-sm text-gray-600">
+                              {selectedTemplate?.services.every(s => connectedServices.includes(s.toLowerCase()))
+                                ? '✓ All required services are connected'
+                                : '⚠ Connect missing services to proceed'}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
@@ -279,14 +421,18 @@ export default function AgentsPage() {
                           Back
                         </button>
                         <button
-                          onClick={() => {
-                            alert('Agent created successfully!');
-                            setShowCreateModal(false);
-                            setSelectedTemplate(null);
-                          }}
-                          className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
+                          onClick={handleCreateAgent}
+                          disabled={isCreating || !agentName.trim() || (selectedTemplate?.type === 'custom' ? selectedServices.length === 0 : false)}
+                          className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
-                          Create Agent
+                          {isCreating ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                              <span>Creating...</span>
+                            </>
+                          ) : (
+                            <span>Create Agent</span>
+                          )}
                         </button>
                       </div>
                     </div>
