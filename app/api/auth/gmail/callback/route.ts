@@ -105,9 +105,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Redirect back to integrations page with success
-    return NextResponse.redirect(
-      new URL('/integrations?connected=gmail', request.url)
-    );
+    const isLocalhost = request.url.includes('localhost');
+    const protocol = isLocalhost ? 'http' : 'https';
+    const host = new URL(request.url).host;
+    const redirectUrl = `${protocol}://${host}/integrations?connected=gmail`;
+    
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Gmail OAuth callback error:', {
@@ -116,8 +119,12 @@ export async function GET(request: NextRequest) {
       error,
     });
     
-    return NextResponse.redirect(
-      new URL(`/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`, request.url)
-    );
+    // Use HTTP for localhost, HTTPS for production
+    const isLocalhost = request.url.includes('localhost');
+    const protocol = isLocalhost ? 'http' : 'https';
+    const host = new URL(request.url).host;
+    const errorUrl = `${protocol}://${host}/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`;
+    
+    return NextResponse.redirect(errorUrl);
   }
 }
