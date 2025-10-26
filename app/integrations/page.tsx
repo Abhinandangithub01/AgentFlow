@@ -1,21 +1,19 @@
 'use client';
 
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Zap } from 'lucide-react';
 import { EmailIcon, ConnectedIcon } from '@/components/icons/CustomIcons';
 
-function IntegrationsContent() {
+export default function IntegrationsPage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [connectedServices, setConnectedServices] = useState<Record<string, boolean>>({});
   const [connectingService, setConnectingService] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
   const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
-  const hasProcessedCallback = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -73,32 +71,37 @@ function IntegrationsContent() {
     }
   };
 
-  // Check for OAuth callback success (client-side only)
+  // Check sessionStorage for OAuth callback results
   useEffect(() => {
-    // Only run once, even in StrictMode
-    if (hasProcessedCallback.current) return;
+    // Only run on client side
+    if (typeof window === 'undefined') return;
     
-    const connected = searchParams?.get('connected');
-    const error = searchParams?.get('error');
+    const connected = sessionStorage.getItem('oauth_success');
+    const error = sessionStorage.getItem('oauth_error');
 
-    if (connected || error) {
-      hasProcessedCallback.current = true;
+    if (connected) {
+      // Clear from sessionStorage
+      sessionStorage.removeItem('oauth_success');
       
-      // Clean URL first
-      window.history.replaceState({}, '', '/integrations');
+      // Update state
+      setConnectedServices(prev => ({ ...prev, [connected]: true }));
+      setShowSuccessMessage(connected);
       
-      // Schedule state updates for next tick
-      requestAnimationFrame(() => {
-        if (connected) {
-          setConnectedServices(prev => ({ ...prev, [connected]: true }));
-          setShowSuccessMessage(connected);
-        }
-        if (error) {
-          setShowErrorMessage(error);
-        }
-      });
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowSuccessMessage(null), 5000);
     }
-  }, [searchParams]);
+
+    if (error) {
+      // Clear from sessionStorage
+      sessionStorage.removeItem('oauth_error');
+      
+      // Show error
+      setShowErrorMessage(error);
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowErrorMessage(null), 5000);
+    }
+  }, []);
 
   const availableIntegrations = [
     { name: 'Gmail', description: 'Email management and automation', icon: 'email', color: 'red' },
@@ -198,14 +201,3 @@ function IntegrationsContent() {
   );
 }
 
-export default function IntegrationsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    }>
-      <IntegrationsContent />
-    </Suspense>
-  );
-}

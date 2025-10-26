@@ -104,13 +104,13 @@ export async function GET(request: NextRequest) {
       console.log('DynamoDB storage skipped (local dev):', error.message);
     }
 
-    // Redirect back to integrations page with success
+    // Redirect to callback page with success parameter
     // Prioritize environment variable for production (Amplify)
     const successBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                            process.env.AUTH0_BASE_URL ||
                            request.url;
     
-    const successRedirectUrl = new URL('/integrations?connected=gmail', successBaseUrl);
+    const successRedirectUrl = new URL('/auth/callback?connected=gmail', successBaseUrl);
     
     return NextResponse.redirect(successRedirectUrl);
 
@@ -121,13 +121,13 @@ export async function GET(request: NextRequest) {
       error,
     });
     
-    // Redirect to error page, prioritize environment variable for production (Amplify)
+    // Redirect to callback page with error parameter
     const errorBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                          process.env.AUTH0_BASE_URL ||
                          request.url;
     
     const errorRedirectUrl = new URL(
-      `/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`,
+      `/auth/callback?error=callback_failed`,
       errorBaseUrl
     );
     
