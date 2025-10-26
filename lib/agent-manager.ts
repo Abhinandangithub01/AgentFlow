@@ -3,6 +3,7 @@
 
 import { AIAgent, AgentConfig, AgentExecution, AgentType, AgentStatus } from '@/types/agent';
 import { tokenVault } from './token-vault';
+import DynamoDBService, { TABLES } from './db/dynamodb';
 
 export class AgentManager {
   private static instance: AgentManager;
@@ -252,12 +253,29 @@ export class AgentManager {
    * Get agent by ID
    */
   async getAgent(agentId: string, userId: string): Promise<AIAgent | null> {
-    // In production, fetch from database
-    // For now, return from memory
     if (typeof window === 'undefined') {
+      try {
+        // Try DynamoDB first
+        const item = await DynamoDBService.get(TABLES.AGENTS, {
+          PK: `USER#${userId}`,
+          SK: `AGENT#${agentId}`,
+        });
+        
+        if (item) {
+          console.log(`[AgentManager] Retrieved agent from DynamoDB: ${agentId}`);
+          return item as AIAgent;
+        }
+      } catch (error: any) {
+        console.error(`[AgentManager] DynamoDB get failed:`, error.message);
+      }
+      
+      // Fallback to memory
       global.agents = global.agents || new Map();
       const agent = global.agents.get(agentId);
-      return agent && agent.userId === userId ? agent : null;
+      if (agent && agent.userId === userId) {
+        console.log(`[AgentManager] Retrieved agent from memory: ${agentId}`);
+        return agent;
+      }
     }
     return null;
   }
@@ -266,9 +284,32 @@ export class AgentManager {
    * List all agents for a user
    */
   async listAgents(userId: string): Promise<AIAgent[]> {
-    // In production, query database
-    if (typeof window === 'undefined' && global.agents) {
-      return Array.from(global.agents.values()).filter(a => a.userId === userId);
+    if (typeof window === 'undefined') {
+      try {
+        // Try DynamoDB first
+        const items = await DynamoDBService.query(
+          TABLES.AGENTS,
+          'PK = :pk AND begins_with(SK, :sk)',
+          {
+            ':pk': `USER#${userId}`,
+            ':sk': 'AGENT#'
+          }
+        );
+        
+        if (items && items.length > 0) {
+          console.log(`[AgentManager] Retrieved ${items.length} agents from DynamoDB`);
+          return items as AIAgent[];
+        }
+      } catch (error: any) {
+        console.error(`[AgentManager] DynamoDB query failed:`, error.message);
+      }
+      
+      // Fallback to memory
+      if (global.agents) {
+        const agents = Array.from(global.agents.values()).filter(a => a.userId === userId);
+        console.log(`[AgentManager] Retrieved ${agents.length} agents from memory`);
+        return agents;
+      }
     }
     return [];
   }
@@ -290,9 +331,22 @@ export class AgentManager {
         }
       }
 
-      // Delete agent
-      if (typeof window === 'undefined' && global.agents) {
-        global.agents.delete(agentId);
+      // Delete agent from DynamoDB
+      if (typeof window === 'undefined') {
+        try {
+          await DynamoDBService.delete(TABLES.AGENTS, {
+            PK: `USER#${userId}`,
+            SK: `AGENT#${agentId}`,
+          });
+          console.log(`[AgentManager] Deleted agent from DynamoDB: ${agentId}`);
+        } catch (error: any) {
+          console.error(`[AgentManager] DynamoDB delete failed:`, error.message);
+        }
+        
+        // Also delete from memory
+        if (global.agents) {
+          global.agents.delete(agentId);
+        }
       }
 
       return true;
@@ -305,10 +359,22 @@ export class AgentManager {
   // Private helper methods
 
   private async saveAgent(agent: AIAgent): Promise<void> {
-    // In production, save to database
     if (typeof window === 'undefined') {
-      global.agents = global.agents || new Map();
-      global.agents.set(agent.id, agent);
+      try {
+        // Save to DynamoDB for persistence
+        await DynamoDBService.put(TABLES.AGENTS, {
+          PK: `USER#${agent.userId}`,
+          SK: `AGENT#${agent.id}`,
+          ...agent,
+        });
+        console.log(`[AgentManager] Saved agent to DynamoDB: ${agent.id}`);
+      } catch (error: any) {
+        console.error(`[AgentManager] DynamoDB save failed, using memory:`, error.message);
+        // Fallback to memory if DynamoDB fails
+        global.agents = global.agents || new Map();
+        global.agents.set(agent.id, agent);
+        console.log(`[AgentManager] Saved agent to memory: ${agent.id}`);
+      }
     }
   }
 
