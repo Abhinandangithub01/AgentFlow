@@ -2,7 +2,7 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Zap } from 'lucide-react';
 import { EmailIcon, ConnectedIcon } from '@/components/icons/CustomIcons';
@@ -14,7 +14,7 @@ export default function IntegrationsPage() {
   const [connectingService, setConnectingService] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
   const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const hasCheckedStorage = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -72,35 +72,36 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Mark component as mounted
+  // Check sessionStorage ONLY ONCE after render completes
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Check sessionStorage for OAuth callback results AFTER mount
-  useEffect(() => {
-    // Only run on client side after component is fully mounted
-    if (!isMounted || typeof window === 'undefined') return;
+    // Prevent double execution
+    if (hasCheckedStorage.current) return;
+    hasCheckedStorage.current = true;
     
-    // Use setTimeout to defer state updates to next tick
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
+    // Double setTimeout to ensure we're completely out of render phase
     setTimeout(() => {
-      const connected = sessionStorage.getItem('oauth_success');
-      const error = sessionStorage.getItem('oauth_error');
+      setTimeout(() => {
+        const connected = sessionStorage.getItem('oauth_success');
+        const error = sessionStorage.getItem('oauth_error');
 
-      if (connected) {
-        sessionStorage.removeItem('oauth_success');
-        setConnectedServices(prev => ({ ...prev, [connected]: true }));
-        setShowSuccessMessage(connected);
-        setTimeout(() => setShowSuccessMessage(null), 5000);
-      }
+        if (connected) {
+          sessionStorage.removeItem('oauth_success');
+          setConnectedServices(prev => ({ ...prev, [connected]: true }));
+          setShowSuccessMessage(connected);
+          setTimeout(() => setShowSuccessMessage(null), 5000);
+        }
 
-      if (error) {
-        sessionStorage.removeItem('oauth_error');
-        setShowErrorMessage(error);
-        setTimeout(() => setShowErrorMessage(null), 5000);
-      }
+        if (error) {
+          sessionStorage.removeItem('oauth_error');
+          setShowErrorMessage(error);
+          setTimeout(() => setShowErrorMessage(null), 5000);
+        }
+      }, 0);
     }, 0);
-  }, [isMounted]);
+  }, []);
 
   const availableIntegrations = [
     { name: 'Gmail', description: 'Email management and automation', icon: 'email', color: 'red' },
