@@ -29,14 +29,14 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Gmail OAuth Error:', { error, errorDescription });
       return NextResponse.redirect(
-        new URL(`/integrations?error=${encodeURIComponent(error)}&details=${encodeURIComponent(errorDescription || '')}`, request.url)
+        new URL(`/auth/callback?error=oauth_error`, request.url)
       );
     }
 
     if (!code) {
       console.error('No authorization code received');
       return NextResponse.redirect(
-        new URL('/integrations?error=no_code', request.url)
+        new URL('/auth/callback?error=no_code', request.url)
       );
     }
 

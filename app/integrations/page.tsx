@@ -15,12 +15,38 @@ export default function IntegrationsPage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
   const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
   const hasCheckedStorage = useRef(false);
+  const [hasRefreshed, setHasRefreshed] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/');
     }
   }, [user, isLoading]);
+
+  // Fetch actual connection status from backend
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchConnections = async () => {
+      try {
+        const res = await fetch('/api/connections');
+        if (res.ok) {
+          const data = await res.json();
+          const connections: Record<string, boolean> = {};
+          if (data.connections) {
+            data.connections.forEach((conn: any) => {
+              connections[conn.service.toLowerCase()] = true;
+            });
+          }
+          setConnectedServices(connections);
+        }
+      } catch (error) {
+        console.error('Failed to fetch connections:', error);
+      }
+    };
+
+    fetchConnections();
+  }, [user, hasRefreshed]);
 
   if (isLoading) {
     return (
@@ -72,35 +98,44 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Check sessionStorage ONLY ONCE after render completes
+  // Check sessionStorage ONLY ONCE, completely deferred
   useEffect(() => {
     // Prevent double execution
     if (hasCheckedStorage.current) return;
-    hasCheckedStorage.current = true;
     
     // Only run on client side
     if (typeof window === 'undefined') return;
     
-    // Double setTimeout to ensure we're completely out of render phase
-    setTimeout(() => {
+    hasCheckedStorage.current = true;
+    
+    // Use requestIdleCallback if available, otherwise triple setTimeout
+    const checkStorage = () => {
+      const connected = sessionStorage.getItem('oauth_success');
+      const error = sessionStorage.getItem('oauth_error');
+
+      if (connected) {
+        sessionStorage.removeItem('oauth_success');
+        setShowSuccessMessage(connected);
+        setHasRefreshed(prev => !prev); // Trigger refetch
+        setTimeout(() => setShowSuccessMessage(null), 5000);
+      }
+
+      if (error) {
+        sessionStorage.removeItem('oauth_error');
+        setShowErrorMessage(error);
+        setTimeout(() => setShowErrorMessage(null), 5000);
+      }
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(checkStorage);
+    } else {
       setTimeout(() => {
-        const connected = sessionStorage.getItem('oauth_success');
-        const error = sessionStorage.getItem('oauth_error');
-
-        if (connected) {
-          sessionStorage.removeItem('oauth_success');
-          setConnectedServices(prev => ({ ...prev, [connected]: true }));
-          setShowSuccessMessage(connected);
-          setTimeout(() => setShowSuccessMessage(null), 5000);
-        }
-
-        if (error) {
-          sessionStorage.removeItem('oauth_error');
-          setShowErrorMessage(error);
-          setTimeout(() => setShowErrorMessage(null), 5000);
-        }
+        setTimeout(() => {
+          setTimeout(checkStorage, 0);
+        }, 0);
       }, 0);
-    }, 0);
+    }
   }, []);
 
   const availableIntegrations = [
