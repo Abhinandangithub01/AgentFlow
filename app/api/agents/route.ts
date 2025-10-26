@@ -11,8 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('[API] Fetching agents for user:', session.user.sub);
+
     // Fetch agents using agent manager
     const userAgents = await agentManager.listAgents(session.user.sub);
+
+    console.log('[API] Found agents:', userAgents.length);
 
     return NextResponse.json({ agents: userAgents });
   } catch (error) {
@@ -32,21 +36,30 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, type, description, config } = body;
 
+    console.log('[API] Creating agent:', { name, type, description, config });
+
     // Validate input
-    if (!name || !type || !description) {
+    if (!name || !type) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: name and type' },
         { status: 400 }
       );
     }
 
-    // Create agent using agent manager
+    // Create agent using agent manager with description in config
+    const agentConfig = {
+      ...config,
+      systemPrompt: description || `AI agent for ${type}`,
+    };
+
     const newAgent = await agentManager.createAgent(
       session.user.sub,
       name,
       type as AgentType,
-      config || {}
+      agentConfig
     );
+
+    console.log('[API] Agent created:', newAgent);
 
     return NextResponse.json({ agent: newAgent }, { status: 201 });
   } catch (error) {

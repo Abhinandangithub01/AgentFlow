@@ -84,6 +84,8 @@ export default function AgentsPage() {
   const [agentName, setAgentName] = useState('');
   const [agentSchedule, setAgentSchedule] = useState('realtime');
   const [isCreating, setIsCreating] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -109,6 +111,29 @@ export default function AgentsPage() {
     };
 
     fetchConnections();
+  }, [user]);
+
+  // Fetch agents
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchAgents = async () => {
+      setLoadingAgents(true);
+      try {
+        const res = await fetch('/api/agents');
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Agents] Fetched:', data);
+          setAgents(data.agents || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch agents:', error);
+      } finally {
+        setLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
   }, [user]);
 
   const handleCreateAgent = async () => {
@@ -145,12 +170,17 @@ export default function AgentsPage() {
       });
 
       if (response.ok) {
+        const newAgent = await response.json();
+        console.log('[Agent Created]', newAgent);
+        
+        // Add new agent to the list
+        setAgents(prev => [...prev, newAgent.agent || newAgent]);
+        
         alert('🎉 Agent created successfully!');
         setShowCreateModal(false);
         setSelectedTemplate(null);
         setAgentName('');
         setSelectedServices([]);
-        router.refresh();
       } else {
         throw new Error('Failed to create agent');
       }
@@ -196,23 +226,78 @@ export default function AgentsPage() {
         </div>
 
         <div className="p-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-8 w-8 text-primary-600" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">No agents yet</h2>
-              <p className="text-gray-600 mb-6">
-                Create your first AI agent to get started with automation
-              </p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
-              >
-                Create Your First Agent
-              </button>
+          {loadingAgents ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
-          </div>
+          ) : agents.length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plus className="h-8 w-8 text-primary-600" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">No agents yet</h2>
+                <p className="text-gray-600 mb-6">
+                  Create your first AI agent to get started with automation
+                </p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
+                >
+                  Create Your First Agent
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {agents.map((agent: any) => (
+                <div key={agent.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <span className="text-2xl">🤖</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{agent.name}</h3>
+                        <p className="text-xs text-gray-500">{agent.type}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      agent.status === 'active' 
+                        ? 'bg-success-100 text-success-700' 
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {agent.status || 'active'}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {agent.description}
+                  </p>
+                  
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Services:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {agent.config?.services?.map((service: string, idx: number) => (
+                        <span key={idx} className="px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded">
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <span className="text-xs text-gray-500">
+                      Schedule: {agent.config?.schedule || 'realtime'}
+                    </span>
+                    <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Create Agent Modal */}
