@@ -22,7 +22,7 @@ export default function DashboardNew() {
     if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (

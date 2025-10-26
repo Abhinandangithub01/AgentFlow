@@ -117,7 +117,7 @@ export default function CreateAgentPage() {
     if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (

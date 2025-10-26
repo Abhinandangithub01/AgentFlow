@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,  // Disabled to prevent double-render issues
   generateBuildId: async () => {
     // Force new build ID to clear cache
     return `build-${Date.now()}`;
