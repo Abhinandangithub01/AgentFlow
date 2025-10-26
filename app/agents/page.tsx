@@ -251,7 +251,11 @@ export default function AgentsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {agents.map((agent: any) => (
-                <div key={agent.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                <div 
+                  key={agent.id} 
+                  onClick={() => router.push(`/agent/${agent.id}`)}
+                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -290,8 +294,14 @@ export default function AgentsPage() {
                     <span className="text-xs text-gray-500">
                       Schedule: {agent.config?.schedule || 'realtime'}
                     </span>
-                    <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                      View Details
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/agent/${agent.id}`);
+                      }}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline"
+                    >
+                      View Details →
                     </button>
                   </div>
                 </div>

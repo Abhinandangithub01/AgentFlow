@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
+import { agentManager } from '@/lib/agent-manager';
 
 export async function GET(
   request: Request,
@@ -14,27 +15,14 @@ export async function GET(
 
     const agentId = params.id;
 
-    // Mock agent data - replace with database query
-    const agent = {
-      id: agentId,
-      name: 'Email Assistant',
-      type: 'email',
-      status: 'active',
-      lastRun: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-      actionsToday: 34,
-      description: 'Manages inbox and drafts replies',
-      config: {
-        schedule: 'hourly',
-        services: ['gmail', 'slack']
-      },
-      stats: {
-        totalActions: 1247,
-        successRate: 98,
-        timeSaved: 42.5,
-        emailsProcessed: 847,
-        draftsCreated: 234
-      }
-    };
+    console.log('[API] Fetching agent:', agentId, 'for user:', session.user.sub);
+
+    // Fetch agent from agent manager
+    const agent = await agentManager.getAgent(agentId, session.user.sub);
+
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ agent });
   } catch (error) {
@@ -57,12 +45,34 @@ export async function PATCH(
     const agentId = params.id;
     const body = await request.json();
 
-    // In production, update database
+    console.log('[API] Updating agent:', agentId, 'with:', body);
+
+    // Update agent status
+    if (body.status) {
+      const agent = body.status === 'active' 
+        ? await agentManager.startAgent(agentId, session.user.sub)
+        : await agentManager.pauseAgent(agentId, session.user.sub);
+      
+      return NextResponse.json({ agent });
+    }
+
+    // For other updates, fetch and update manually
+    const agent = await agentManager.getAgent(agentId, session.user.sub);
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
     const updatedAgent = {
-      id: agentId,
+      ...agent,
       ...body,
       updatedAt: new Date().toISOString()
     };
+
+    // Save updated agent
+    if (typeof window === 'undefined') {
+      global.agents = global.agents || new Map();
+      global.agents.set(agentId, updatedAgent);
+    }
 
     return NextResponse.json({ agent: updatedAgent });
   } catch (error) {
@@ -84,7 +94,15 @@ export async function DELETE(
 
     const agentId = params.id;
 
-    // In production, delete from database
+    console.log('[API] Deleting agent:', agentId, 'for user:', session.user.sub);
+
+    // Delete agent
+    const success = await agentManager.deleteAgent(agentId, session.user.sub);
+
+    if (!success) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true, id: agentId });
   } catch (error) {
     console.error('Error deleting agent:', error);

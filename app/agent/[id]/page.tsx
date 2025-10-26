@@ -25,6 +25,11 @@ export default function AgentDetailPage() {
   const params = useParams();
   const agentId = params.id;
 
+  const [agent, setAgent] = useState<any>(null);
+  const [loadingAgent, setLoadingAgent] = useState(true);
+  const [isPausing, setIsPausing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [activities, setActivities] = useState<AgentActivity[]>([
     {
       id: '1',
@@ -80,7 +85,81 @@ export default function AgentDetailPage() {
     }
   }, [user, isLoading]);
 
-  if (isLoading) {
+  // Fetch agent data
+  useEffect(() => {
+    if (!user || !agentId) return;
+
+    const fetchAgent = async () => {
+      setLoadingAgent(true);
+      try {
+        const res = await fetch(`/api/agents/${agentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Agent Detail] Fetched:', data);
+          setAgent(data.agent);
+        } else {
+          console.error('[Agent Detail] Failed to fetch agent');
+          router.push('/agents');
+        }
+      } catch (error) {
+        console.error('[Agent Detail] Error:', error);
+        router.push('/agents');
+      } finally {
+        setLoadingAgent(false);
+      }
+    };
+
+    fetchAgent();
+  }, [user, agentId]);
+
+  const handlePause = async () => {
+    setIsPausing(true);
+    try {
+      const newStatus = agent.status === 'active' ? 'paused' : 'active';
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAgent(data.agent);
+        alert(`Agent ${newStatus === 'active' ? 'resumed' : 'paused'} successfully!`);
+      }
+    } catch (error) {
+      console.error('Error updating agent status:', error);
+      alert('Failed to update agent status');
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this agent? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        alert('Agent deleted successfully!');
+        router.push('/agents');
+      } else {
+        throw new Error('Failed to delete agent');
+      }
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      alert('Failed to delete agent');
+      setIsDeleting(false);
+    }
+  };
+
+  if (isLoading || loadingAgent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -88,7 +167,7 @@ export default function AgentDetailPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !agent) {
     return null;
   }
 
@@ -110,25 +189,54 @@ export default function AgentDetailPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/agents')}
                 className="text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
               <Bot className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900">AgentFlow</span>
-              <span className="text-xs font-medium px-2 py-1 rounded-full bg-success-50 text-success-600">
-                🟢 Active
-              </span>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xl font-bold text-gray-900">{agent.name}</span>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                    agent.status === 'active' 
+                      ? 'bg-success-50 text-success-600' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {agent.status === 'active' ? '🟢 Active' : '⏸️ Paused'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">{agent.type}</p>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">
-                <Pause className="h-4 w-4 inline mr-1" />
-                Pause
+              <button 
+                onClick={handlePause}
+                disabled={isPausing}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+              >
+                {isPausing ? (
+                  <span>Loading...</span>
+                ) : agent.status === 'active' ? (
+                  <><Pause className="h-4 w-4 inline mr-1" />Pause</>
+                ) : (
+                  <><Play className="h-4 w-4 inline mr-1" />Resume</>
+                )}
               </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">
+              <button 
+                onClick={() => router.push(`/agent/${agentId}/settings`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
                 <Settings className="h-4 w-4 inline mr-1" />
                 Settings
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-danger-600 hover:bg-danger-50 rounded-lg disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4 inline mr-1" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
