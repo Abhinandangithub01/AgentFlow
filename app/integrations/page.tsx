@@ -2,7 +2,7 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Zap } from 'lucide-react';
 import { EmailIcon, ConnectedIcon } from '@/components/icons/CustomIcons';
@@ -14,8 +14,6 @@ export default function IntegrationsPage() {
   const [connectingService, setConnectingService] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
   const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
-  const hasCheckedStorage = useRef(false);
-  const [hasRefreshed, setHasRefreshed] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -46,7 +44,7 @@ export default function IntegrationsPage() {
     };
 
     fetchConnections();
-  }, [user, hasRefreshed]);
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -97,46 +95,6 @@ export default function IntegrationsPage() {
       });
     }
   };
-
-  // Check sessionStorage ONLY ONCE, completely deferred
-  useEffect(() => {
-    // Prevent double execution
-    if (hasCheckedStorage.current) return;
-    
-    // Only run on client side
-    if (typeof window === 'undefined') return;
-    
-    hasCheckedStorage.current = true;
-    
-    // Use requestIdleCallback if available, otherwise triple setTimeout
-    const checkStorage = () => {
-      const connected = sessionStorage.getItem('oauth_success');
-      const error = sessionStorage.getItem('oauth_error');
-
-      if (connected) {
-        sessionStorage.removeItem('oauth_success');
-        setShowSuccessMessage(connected);
-        setHasRefreshed(prev => !prev); // Trigger refetch
-        setTimeout(() => setShowSuccessMessage(null), 5000);
-      }
-
-      if (error) {
-        sessionStorage.removeItem('oauth_error');
-        setShowErrorMessage(error);
-        setTimeout(() => setShowErrorMessage(null), 5000);
-      }
-    };
-
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(checkStorage);
-    } else {
-      setTimeout(() => {
-        setTimeout(() => {
-          setTimeout(checkStorage, 0);
-        }, 0);
-      }, 0);
-    }
-  }, []);
 
   const availableIntegrations = [
     { name: 'Gmail', description: 'Email management and automation', icon: 'email', color: 'red' },
