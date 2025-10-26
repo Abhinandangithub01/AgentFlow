@@ -1,56 +1,117 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { getGmailTokens } from '@/lib/gmail';
+import { google } from 'googleapis';
+import { tokenVault } from '@/lib/token-vault';
+import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Gmail OAuth callback handler
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    console.log('Gmail OAuth Callback - Starting');
+    
     const session = await getSession();
     
     if (!session?.user) {
-      return NextResponse.redirect(new URL('/', request.url));
+      console.error('No session found');
+      return NextResponse.redirect(new URL('/?error=no_session', request.url));
     }
 
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
 
+    // Log OAuth error if present
     if (error) {
-      console.error('OAuth error:', error);
+      console.error('Gmail OAuth Error:', { error, errorDescription });
       return NextResponse.redirect(
-        new URL(`/integrations?error=${encodeURIComponent(error)}`, request.url)
+        new URL(`/integrations?error=${encodeURIComponent(error)}&details=${encodeURIComponent(errorDescription || '')}`, request.url)
       );
     }
 
     if (!code) {
+      console.error('No authorization code received');
       return NextResponse.redirect(
         new URL('/integrations?error=no_code', request.url)
       );
     }
 
-    // Exchange code for tokens
-    const tokens = await getGmailTokens(code);
+    // Build redirect URI dynamically (must match the one used in connect route)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                    process.env.AUTH0_BASE_URL || 
+                    `https://${request.headers.get('host')}`;
+    const redirectUri = `${baseUrl}/api/auth/gmail/callback`;
 
-    // In production, store tokens in Auth0 Token Vault or secure database
-    // For now, we'll store in session or database
-    console.log('Gmail tokens received:', {
-      hasAccessToken: !!tokens.access_token,
-      hasRefreshToken: !!tokens.refresh_token,
-      expiresIn: tokens.expiry_date,
+    console.log('Gmail OAuth Config:', {
+      clientId: process.env.GOOGLE_CLIENT_ID?.substring(0, 30) + '...',
+      redirectUri,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
     });
 
-    // TODO: Store tokens securely
-    // await storeTokens(session.user.sub, 'gmail', tokens);
+    // Exchange code for tokens
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const { tokens } = await oauth2Client.getToken(code);
+
+    if (!tokens.access_token) {
+      console.error('No access token received');
+      throw new Error('No access token received from Google');
+    }
+
+    console.log('Gmail tokens received successfully');
+
+    // Store tokens in Token Vault
+    await tokenVault.storeOAuthToken(
+      session.user.sub,
+      'gmail',
+      {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || '',
+        expiresIn: tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600,
+        tokenType: 'Bearer',
+        scope: tokens.scope || '',
+      }
+    );
+
+    console.log('Tokens stored in Token Vault');
+
+    // Store connection record
+    await DynamoDBService.put(TABLES.CONNECTIONS, {
+      PK: `USER#${session.user.sub}`,
+      SK: 'SERVICE#gmail',
+      id: `conn_gmail_${Date.now()}`,
+      userId: session.user.sub,
+      service: 'gmail',
+      status: 'connected',
+      scopes: tokens.scope?.split(' ') || [],
+      connectedAt: new Date().toISOString(),
+      lastUsed: new Date().toISOString(),
+    });
+
+    console.log('Connection record stored');
 
     // Redirect back to integrations page with success
     return NextResponse.redirect(
       new URL('/integrations?connected=gmail', request.url)
     );
 
-  } catch (error) {
-    console.error('Gmail OAuth callback error:', error);
+  } catch (error: any) {
+    console.error('Gmail OAuth callback error:', {
+      message: error.message,
+      stack: error.stack,
+      error,
+    });
+    
     return NextResponse.redirect(
-      new URL('/integrations?error=callback_failed', request.url)
+      new URL(`/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`, request.url)
     );
   }
 }

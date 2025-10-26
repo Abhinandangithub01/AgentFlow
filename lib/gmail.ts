@@ -274,20 +274,29 @@ export async function replyToEmail(
 }
 
 // Get OAuth URL for Gmail
-export function getGmailAuthUrl(): string {
+export function getGmailAuthUrl(baseUrl?: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  
+  // Build redirect URI dynamically
+  const redirectUri = baseUrl 
+    ? `${baseUrl}/api/auth/gmail/callback`
+    : process.env.GOOGLE_REDIRECT_URI || `${process.env.AUTH0_BASE_URL}/api/auth/gmail/callback`;
 
-  // Debug logging (remove in production)
+  // Debug logging
   console.log('Gmail OAuth Config:', {
-    clientId: clientId ? `${clientId.substring(0, 20)}...` : 'MISSING',
+    clientId: clientId ? `${clientId.substring(0, 30)}...` : 'MISSING',
     clientSecret: clientSecret ? 'SET' : 'MISSING',
-    redirectUri: redirectUri || 'MISSING'
+    redirectUri: redirectUri || 'MISSING',
+    baseUrl: baseUrl || 'from env'
   });
 
-  if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error('Missing Google OAuth credentials. Please check environment variables.');
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing Google OAuth credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.');
+  }
+
+  if (!redirectUri) {
+    throw new Error('Missing redirect URI. Set GOOGLE_REDIRECT_URI or AUTH0_BASE_URL environment variable.');
   }
 
   const oauth2Client = new google.auth.OAuth2(
