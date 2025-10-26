@@ -1,17 +1,20 @@
 'use client';
 
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Zap } from 'lucide-react';
 import { EmailIcon, ConnectedIcon } from '@/components/icons/CustomIcons';
 
-export default function IntegrationsPage() {
+function IntegrationsContent() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [connectedServices, setConnectedServices] = useState<Record<string, boolean>>({});
   const [connectingService, setConnectingService] = useState<string | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
+  const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
   const hasProcessedCallback = useRef(false);
 
   useEffect(() => {
@@ -69,33 +72,28 @@ export default function IntegrationsPage() {
   useEffect(() => {
     // Only run once, even in StrictMode
     if (hasProcessedCallback.current) return;
-    if (typeof window === 'undefined') return;
     
-    const params = new URLSearchParams(window.location.search);
-    const connected = params.get('connected');
-    const error = params.get('error');
+    const connected = searchParams?.get('connected');
+    const error = searchParams?.get('error');
 
     if (connected || error) {
       hasProcessedCallback.current = true;
       
-      // Clean URL immediately
+      // Clean URL first
       window.history.replaceState({}, '', '/integrations');
       
-      // Update state
-      if (connected) {
-        setConnectedServices(prev => ({ ...prev, [connected]: true }));
-        setTimeout(() => {
-          alert(`✓ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`);
-        }, 0);
-      }
-
-      if (error) {
-        setTimeout(() => {
-          alert(`Connection failed: ${error}`);
-        }, 0);
-      }
+      // Schedule state updates for next tick
+      requestAnimationFrame(() => {
+        if (connected) {
+          setConnectedServices(prev => ({ ...prev, [connected]: true }));
+          setShowSuccessMessage(connected);
+        }
+        if (error) {
+          setShowErrorMessage(error);
+        }
+      });
     }
-  }, []);
+  }, [searchParams]);
 
   const availableIntegrations = [
     { name: 'Gmail', description: 'Email management and automation', icon: 'email', color: 'red' },
@@ -108,6 +106,22 @@ export default function IntegrationsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-success-100 border border-success-500 text-success-800 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2">
+          <span>✓ {showSuccessMessage.charAt(0).toUpperCase() + showSuccessMessage.slice(1)} connected successfully!</span>
+          <button onClick={() => setShowSuccessMessage(null)} className="ml-2 text-success-600 hover:text-success-800 font-bold">×</button>
+        </div>
+      )}
+      
+      {/* Error Message */}
+      {showErrorMessage && (
+        <div className="fixed top-4 right-4 bg-red-100 border border-red-500 text-red-800 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2">
+          <span>Connection failed: {showErrorMessage}</span>
+          <button onClick={() => setShowErrorMessage(null)} className="ml-2 text-red-600 hover:text-red-800 font-bold">×</button>
+        </div>
+      )}
+      
       <Sidebar />
       
       <div className="flex-1 ml-64 overflow-auto">
@@ -176,5 +190,17 @@ export default function IntegrationsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <IntegrationsContent />
+    </Suspense>
   );
 }
