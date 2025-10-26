@@ -1,11 +1,20 @@
 'use client';
 
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bot, Sparkles, Shield, Zap, ArrowRight, CheckCircle, Mail, DollarSign, Search } from 'lucide-react';
 
 export default function Home() {
   const { user, isLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -16,8 +25,11 @@ export default function Home() {
   }
 
   if (user) {
-    window.location.href = '/dashboard';
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
   }
 
   return (
