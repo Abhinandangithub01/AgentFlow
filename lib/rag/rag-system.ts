@@ -1,7 +1,7 @@
 // RAG (Retrieval Augmented Generation) System
 // Enables agents to access and query knowledge bases
+// Using Groq for LLM and simple keyword matching for retrieval
 
-import { OpenAIEmbeddings } from '@langchain/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { Document } from '@langchain/core/documents';
 import DynamoDBService, { TABLES } from '../db/dynamodb';
@@ -9,28 +9,28 @@ import { RAGKnowledgeBase, RAGQuery, RAGResult } from '@/types/agent';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RAGSystem {
-  private embeddings: OpenAIEmbeddings | null = null;
   private textSplitter: RecursiveCharacterTextSplitter;
 
   constructor() {
-    // Lazy initialization of embeddings
     this.textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
     });
   }
 
-  private getEmbeddings(): OpenAIEmbeddings {
-    if (!this.embeddings) {
-      if (!process.env.OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY is not configured');
+  // Simple keyword-based similarity (no embeddings needed)
+  private calculateKeywordSimilarity(query: string, text: string): number {
+    const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const textLower = text.toLowerCase();
+    
+    let matches = 0;
+    for (const word of queryWords) {
+      if (textLower.includes(word)) {
+        matches++;
       }
-      this.embeddings = new OpenAIEmbeddings({
-        openAIApiKey: process.env.OPENAI_API_KEY,
-        modelName: 'text-embedding-3-small',
-      });
     }
-    return this.embeddings;
+    
+    return queryWords.length > 0 ? matches / queryWords.length : 0;
   }
 
   /**
@@ -98,10 +98,9 @@ export class RAGSystem {
           [doc.metadata || {}]
         );
 
-        // Generate embeddings and store
+        // Store chunks (no embeddings needed for keyword matching)
         for (let i = 0; i < chunks.length; i++) {
           const chunk = chunks[i];
-          const embedding = await this.getEmbeddings().embedQuery(chunk.pageContent);
 
           const vectorId = `vec_${uuidv4()}`;
           await DynamoDBService.put(TABLES.VECTORS, {
@@ -110,7 +109,6 @@ export class RAGSystem {
             id: vectorId,
             knowledgeBaseId,
             content: chunk.pageContent,
-            embedding,
             metadata: chunk.metadata,
             createdAt: new Date().toISOString(),
           });
@@ -156,9 +154,6 @@ export class RAGSystem {
       throw new Error('Agent does not have permission to query this knowledge base');
     }
 
-    // Generate query embedding
-    const queryEmbedding = await this.getEmbeddings().embedQuery(query.query);
-
     // Get all vectors for this knowledge base
     const vectors = await DynamoDBService.query(
       TABLES.VECTORS,
@@ -166,15 +161,16 @@ export class RAGSystem {
       { ':pk': `KB#${query.knowledgeBaseId}` }
     );
 
-    // Calculate cosine similarity and rank
+    // Calculate keyword similarity and rank
     const results = vectors
       .map(vec => ({
         id: vec.id,
         content: vec.content,
-        score: this.cosineSimilarity(queryEmbedding, vec.embedding),
+        score: this.calculateKeywordSimilarity(query.query, vec.content),
         metadata: vec.metadata,
         source: vec.metadata?.source,
       }))
+      .filter(r => r.score > 0) // Only include results with matches
       .sort((a, b) => b.score - a.score)
       .slice(0, query.topK || 5);
 
@@ -322,23 +318,6 @@ export class RAGSystem {
     };
   }
 
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) {
-      throw new Error('Vectors must have the same length');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
 }
 
 // Export singleton

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { OpenAI } from 'openai';
+import Groq from 'groq-sdk';
 import { agentMemory } from '@/lib/memory/agent-memory';
 import { ragSystem } from '@/lib/rag/rag-system';
 import { rulesEngine } from '@/lib/rules/rules-engine';
@@ -11,13 +11,13 @@ import { v4 as uuidv4 } from 'uuid';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Initialize OpenAI client only if API key is available
-const getOpenAIClient = () => {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured');
+// Initialize Groq client only if API key is available
+const getGroqClient = () => {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not configured');
   }
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY,
   });
 };
 
@@ -129,16 +129,16 @@ Always be helpful, accurate, and concise.`;
       { role: 'user', content: message },
     ];
 
-    // Call OpenAI
-    const openai = getOpenAIClient();
-    const completion = await openai.chat.completions.create({
-      model: agent.config?.model || 'gpt-4-turbo-preview',
+    // Call Groq with Llama 3.3 70B
+    const groq = getGroqClient();
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       messages,
       temperature: agent.config?.temperature || 0.7,
       max_tokens: 2000,
     });
 
-    const assistantMessage = completion.choices[0].message.content || '';
+    const assistantMessage = completion.choices[0]?.message?.content || '';
 
     // Store messages in DynamoDB
     const messageId = uuidv4();
