@@ -29,55 +29,9 @@ export default function AgentDetailPage() {
   const [loadingAgent, setLoadingAgent] = useState(true);
   const [isPausing, setIsPausing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [loadingActivities, setLoadingActivities] = useState(true);
 
-  const [activities, setActivities] = useState<AgentActivity[]>([
-    {
-      id: '1',
-      type: 'success',
-      icon: '📧',
-      title: 'Read 12 new emails from Gmail',
-      description: '8 categorized as client work, 3 as newsletters, 1 flagged as urgent',
-      timestamp: '2 minutes ago',
-      details: {
-        urgent: 1,
-        client: 8,
-        newsletter: 3
-      }
-    },
-    {
-      id: '2',
-      type: 'info',
-      icon: '✏️',
-      title: 'Drafted reply to client@company.com',
-      description: '"Hi John, regarding the invoice for Project X..."',
-      timestamp: '5 minutes ago',
-      details: {
-        recipient: 'john@acme.com',
-        confidence: 95,
-        tone: 'Professional'
-      }
-    },
-    {
-      id: '3',
-      type: 'action_required',
-      icon: '⚠️',
-      title: 'Needs Your Attention',
-      description: 'Found urgent email from VIP client about deadline change',
-      timestamp: '8 minutes ago',
-      details: {
-        subject: 'Project deadline moved to tomorrow',
-        from: 'John Doe - Acme Corp'
-      }
-    },
-    {
-      id: '4',
-      type: 'success',
-      icon: '💬',
-      title: 'Posted summary to #work-updates',
-      description: 'Daily email digest shared with team',
-      timestamp: '15 minutes ago'
-    }
-  ]);
+  const [activities, setActivities] = useState<AgentActivity[]>([]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -110,6 +64,35 @@ export default function AgentDetailPage() {
     };
 
     fetchAgent();
+  }, [user, agentId]);
+
+  // Fetch activities from API
+  useEffect(() => {
+    if (!user || !agentId) return;
+
+    const fetchActivities = async () => {
+      setLoadingActivities(true);
+      try {
+        const res = await fetch(`/api/agents/${agentId}/activity`);
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Agent Detail] Fetched activities:', data);
+          setActivities(data.activities || []);
+        } else {
+          console.error('[Agent Detail] Failed to fetch activities');
+        }
+      } catch (error) {
+        console.error('[Agent Detail] Error fetching activities:', error);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+
+    fetchActivities();
+    
+    // Refresh activities every 30 seconds
+    const interval = setInterval(fetchActivities, 30000);
+    return () => clearInterval(interval);
   }, [user, agentId]);
 
   const handlePause = async () => {
