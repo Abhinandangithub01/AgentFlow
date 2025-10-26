@@ -22,7 +22,7 @@ function CallbackContent() {
     setTimeout(() => {
       router.replace('/integrations');
     }, 100);
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
