@@ -112,7 +112,20 @@ export default function AgentsPage() {
   }, [user]);
 
   const handleCreateAgent = async () => {
-    if (!agentName.trim() || selectedServices.length === 0) return;
+    console.log('[Agent Creation]', {
+      agentName,
+      selectedServices,
+      template: selectedTemplate?.type,
+      canCreate: agentName.trim() && selectedServices.length > 0
+    });
+
+    if (!agentName.trim() || selectedServices.length === 0) {
+      console.log('[Agent Creation] Validation failed:', {
+        hasName: !!agentName.trim(),
+        hasServices: selectedServices.length > 0
+      });
+      return;
+    }
 
     setIsCreating(true);
     try {
@@ -283,6 +296,8 @@ export default function AgentsPage() {
                         </label>
                         <input
                           type="text"
+                          value={agentName}
+                          onChange={(e) => setAgentName(e.target.value)}
                           placeholder={selectedTemplate.name}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
@@ -293,7 +308,11 @@ export default function AgentsPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Run Schedule
                         </label>
-                        <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <select
+                          value={agentSchedule}
+                          onChange={(e) => setAgentSchedule(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
                           <option value="realtime">Real-time (Continuous)</option>
                           <option value="15min">Every 15 minutes</option>
                           <option value="hourly">Every hour</option>
@@ -415,14 +434,24 @@ export default function AgentsPage() {
 
                       <div className="flex items-center justify-between pt-6 border-t border-gray-200">
                         <button
-                          onClick={() => setSelectedTemplate(null)}
+                          onClick={() => {
+                            setSelectedTemplate(null);
+                            setAgentName('');
+                            setSelectedServices([]);
+                          }}
                           className="px-6 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100"
                         >
                           Back
                         </button>
                         <button
                           onClick={handleCreateAgent}
-                          disabled={isCreating || !agentName.trim() || (selectedTemplate?.type === 'custom' ? selectedServices.length === 0 : false)}
+                          disabled={(() => {
+                            const hasName = agentName.trim().length > 0;
+                            const hasServices = selectedServices.length > 0;
+                            const isDisabled = isCreating || !hasName || !hasServices;
+                            console.log('[Button State]', { hasName, hasServices, isCreating, isDisabled, agentName, selectedServices });
+                            return isDisabled;
+                          })()}
                           className="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           {isCreating ? (
