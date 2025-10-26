@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  generateBuildId: async () => {
+    // Force new build ID to clear cache
+    return `build-${Date.now()}`;
+  },
   env: {
     // Auth0
     AUTH0_SECRET: process.env.AUTH0_SECRET,
