@@ -27,12 +27,14 @@ export async function GET(request: NextRequest) {
 
     // If no connections from DynamoDB, check Token Vault directly
     if (connections.length === 0) {
+      console.log('[Connections API] DynamoDB returned no connections, checking Token Vault...');
       const services = ['gmail', 'slack', 'google-calendar', 'notion', 'twitter', 'linkedin'];
       const vaultConnections = [];
 
       for (const service of services) {
         try {
           const token = await tokenVault.getOAuthToken(session.user.sub, service);
+          console.log(`[Connections API] Checked ${service}:`, !!token);
           if (token && token.accessToken) {
             vaultConnections.push({
               id: `${session.user.sub}-${service}`,
@@ -42,13 +44,15 @@ export async function GET(request: NextRequest) {
               connectedAt: new Date().toISOString(),
               lastUsed: new Date().toISOString(),
             });
+            console.log(`[Connections API] Added ${service} to connections`);
           }
         } catch (err) {
-          // Token doesn't exist for this service, skip
+          console.log(`[Connections API] Error checking ${service}:`, err);
         }
       }
 
       connections = vaultConnections;
+      console.log(`[Connections API] Total connections found: ${connections.length}`);
     }
 
     // Don't expose tokens

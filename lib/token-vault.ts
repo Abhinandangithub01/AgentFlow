@@ -52,8 +52,9 @@ export class TokenVaultService {
         }
       };
 
-      // Store encrypted tokens (implementation would use Auth0 Token Vault)
-      await this.encryptAndStore(entry.id, tokens);
+      // FIXED: Use vaultKey instead of entry.id for consistent storage/retrieval
+      const vaultKey = this.generateVaultKey(userId, service, agentId);
+      await this.encryptAndStore(vaultKey, tokens);
 
       return entry;
     } catch (error) {
@@ -230,6 +231,7 @@ export class TokenVaultService {
     if (typeof window === 'undefined') {
       global.tokenVault = global.tokenVault || new Map();
       global.tokenVault.set(key, tokens);
+      console.log(`[TokenVault] Stored token for key: ${key}`);
     }
   }
 
@@ -239,7 +241,9 @@ export class TokenVaultService {
   private async decryptAndRetrieve(key: string): Promise<SecureToken | null> {
     // In production, use Auth0 Token Vault API
     if (typeof window === 'undefined' && global.tokenVault) {
-      return global.tokenVault.get(key) || null;
+      const token = global.tokenVault.get(key) || null;
+      console.log(`[TokenVault] Retrieved token for key: ${key}, found: ${!!token}`);
+      return token;
     }
     return null;
   }
