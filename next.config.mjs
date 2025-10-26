@@ -37,6 +37,11 @@ const nextConfig = {
     // AWS S3
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_LAMBDA_FUNCTION: process.env.AWS_LAMBDA_FUNCTION,
+    
+    // Slack OAuth
+    SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
+    SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
+    SLACK_REDIRECT_URI: process.env.SLACK_REDIRECT_URI,
   },
 };
 
