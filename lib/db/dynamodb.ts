@@ -41,6 +41,7 @@ export const TABLES = {
   RULES: process.env.DYNAMODB_RULES_TABLE || 'AgentFlow-Rules',
   TOOLS: process.env.DYNAMODB_TOOLS_TABLE || 'AgentFlow-Tools',
   CONNECTIONS: process.env.DYNAMODB_CONNECTIONS_TABLE || 'AgentFlow-Connections',
+  TOKENS: process.env.DYNAMODB_TOKENS_TABLE || 'AgentFlow-Tokens',
   ANALYTICS: process.env.DYNAMODB_ANALYTICS_TABLE || 'AgentFlow-Analytics',
 };
 

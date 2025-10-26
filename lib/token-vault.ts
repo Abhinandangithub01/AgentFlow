@@ -1,7 +1,8 @@
 // Auth0 Token Vault Integration
 // Secure storage for OAuth tokens and API keys used by AI agents
 
-import { TokenVaultEntry, SecureToken } from '@/types/agent';
+import { SecureToken, TokenVaultEntry } from '@/types/token-vault';
+import DynamoDBService, { TABLES } from './db/dynamodb';
 
 /**
  * Token Vault Service
@@ -223,27 +224,69 @@ export class TokenVaultService {
   }
 
   /**
-   * Encrypt and store tokens (placeholder for Auth0 Token Vault)
+   * Encrypt and store tokens in DynamoDB
    */
   private async encryptAndStore(key: string, tokens: SecureToken): Promise<void> {
-    // In production, use Auth0 Token Vault API
-    // For now, store in memory (NOT SECURE - for development only)
     if (typeof window === 'undefined') {
-      global.tokenVault = global.tokenVault || new Map();
-      global.tokenVault.set(key, tokens);
-      console.log(`[TokenVault] Stored token for key: ${key}`);
+      try {
+        // Store in DynamoDB for persistence
+        await DynamoDBService.put(TABLES.TOKENS, {
+          PK: `TOKEN#${key}`,
+          SK: 'METADATA',
+          key,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken || '',
+          expiresIn: tokens.expiresIn,
+          tokenType: tokens.tokenType || 'Bearer',
+          scope: tokens.scope || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        console.log(`[TokenVault] Stored token in DynamoDB for key: ${key}`);
+      } catch (error: any) {
+        console.error(`[TokenVault] DynamoDB storage failed, using memory:`, error.message);
+        // Fallback to memory if DynamoDB fails (local dev)
+        global.tokenVault = global.tokenVault || new Map();
+        global.tokenVault.set(key, tokens);
+        console.log(`[TokenVault] Stored token in memory for key: ${key}`);
+      }
     }
   }
 
   /**
-   * Decrypt and retrieve tokens (placeholder for Auth0 Token Vault)
+   * Decrypt and retrieve tokens from DynamoDB
    */
   private async decryptAndRetrieve(key: string): Promise<SecureToken | null> {
-    // In production, use Auth0 Token Vault API
-    if (typeof window === 'undefined' && global.tokenVault) {
-      const token = global.tokenVault.get(key) || null;
-      console.log(`[TokenVault] Retrieved token for key: ${key}, found: ${!!token}`);
-      return token;
+    if (typeof window === 'undefined') {
+      try {
+        // Try DynamoDB first
+        const item = await DynamoDBService.get(TABLES.TOKENS, {
+          PK: `TOKEN#${key}`,
+          SK: 'METADATA',
+        });
+        
+        if (item) {
+          console.log(`[TokenVault] Retrieved token from DynamoDB for key: ${key}`);
+          return {
+            accessToken: item.accessToken,
+            refreshToken: item.refreshToken,
+            expiresIn: item.expiresIn,
+            tokenType: item.tokenType,
+            scope: item.scope,
+          };
+        }
+      } catch (error: any) {
+        console.error(`[TokenVault] DynamoDB retrieval failed:`, error.message);
+      }
+      
+      // Fallback to memory
+      if (global.tokenVault) {
+        const token = global.tokenVault.get(key) || null;
+        if (token) {
+          console.log(`[TokenVault] Retrieved token from memory for key: ${key}`);
+        }
+        return token;
+      }
     }
     return null;
   }
@@ -252,6 +295,18 @@ export class TokenVaultService {
    * Delete token from vault
    */
   private async deleteFromVault(key: string): Promise<void> {
+    try {
+      // Delete from DynamoDB
+      await DynamoDBService.delete(TABLES.TOKENS, {
+        PK: `TOKEN#${key}`,
+        SK: 'METADATA',
+      });
+      console.log(`[TokenVault] Deleted token from DynamoDB for key: ${key}`);
+    } catch (error: any) {
+      console.error(`[TokenVault] DynamoDB deletion failed:`, error.message);
+    }
+    
+    // Also delete from memory
     if (typeof window === 'undefined' && global.tokenVault) {
       global.tokenVault.delete(key);
     }
