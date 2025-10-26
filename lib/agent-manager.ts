@@ -33,12 +33,13 @@ export class AgentManager {
         name,
         description: config.systemPrompt || `AI agent for ${type}`,
         type,
-        status: 'configuring',
+        status: 'active', // Changed from 'configuring' to 'active'
         capabilities: this.getDefaultCapabilities(type),
         tools: [],
         permissions: this.getDefaultPermissions(type),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
         metadata: {
           config,
         }

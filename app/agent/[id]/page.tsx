@@ -237,12 +237,23 @@ export default function AgentDetailPage() {
                   <span className="text-sm text-gray-600">Live Updates</span>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Active for 2 hours • 34 actions completed
+                  {agent.status === 'active' ? 'Active' : 'Paused'} • {activities.length} actions completed
                 </p>
               </div>
 
               <div className="p-6 space-y-6">
-                {activities.map((activity) => (
+                {loadingActivities ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">🤖</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No activity yet</h3>
+                    <p className="text-gray-600">Your agent will start working once you connect services and activate it.</p>
+                  </div>
+                ) : (
+                  activities.map((activity) => (
                   <div
                     key={activity.id}
                     className={`border-2 rounded-xl p-5 ${getActivityBgColor(activity.type)} animate-slide-up`}
@@ -330,13 +341,16 @@ export default function AgentDetailPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
 
-                <div className="text-center py-4">
-                  <button className="text-primary-600 font-medium text-sm hover:text-primary-700">
-                    Load More Activity
-                  </button>
-                </div>
+                {!loadingActivities && activities.length > 0 && (
+                  <div className="text-center py-4">
+                    <button className="text-primary-600 font-medium text-sm hover:text-primary-700">
+                      Load More Activity
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -349,30 +363,30 @@ export default function AgentDetailPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Actions Completed</span>
-                  <span className="text-2xl font-bold text-gray-900">34</span>
+                  <span className="text-2xl font-bold text-gray-900">{activities.length}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary-600 h-2 rounded-full" style={{ width: '68%' }}></div>
+                  <div className="bg-primary-600 h-2 rounded-full" style={{ width: `${Math.min((activities.length / 50) * 100, 100)}%` }}></div>
                 </div>
-                <p className="text-xs text-gray-600">68% of daily target (50 actions)</p>
+                <p className="text-xs text-gray-600">{Math.min(Math.round((activities.length / 50) * 100), 100)}% of daily target (50 actions)</p>
               </div>
 
               <div className="mt-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Emails Processed</span>
-                  <span className="text-lg font-semibold text-gray-900">47</span>
+                  <span className="text-lg font-semibold text-gray-900">{activities.filter(a => a.icon === '📧').length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Drafts Created</span>
-                  <span className="text-lg font-semibold text-gray-900">8</span>
+                  <span className="text-lg font-semibold text-gray-900">{activities.filter(a => a.icon === '✏️').length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Urgent Flags</span>
-                  <span className="text-lg font-semibold text-danger-600">3</span>
+                  <span className="text-lg font-semibold text-danger-600">{activities.filter(a => a.type === 'action_required').length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Time Saved</span>
-                  <span className="text-lg font-semibold text-success-600">2.1h</span>
+                  <span className="text-lg font-semibold text-success-600">{(activities.length * 0.05).toFixed(1)}h</span>
                 </div>
               </div>
             </div>
