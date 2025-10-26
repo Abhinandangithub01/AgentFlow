@@ -11,13 +11,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Build redirect URI dynamically
-    const host = request.headers.get('host') || 'localhost:3000';
-    const isLocalhost = host.includes('localhost');
-    const protocol = isLocalhost ? 'http' : 'https';
-    
+    // Prioritize environment variable for production (Amplify)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                     process.env.AUTH0_BASE_URL || 
-                    `${protocol}://${host}`;
+                    `https://${request.headers.get('host')}`;
     const redirectUri = `${baseUrl}/api/auth/gmail/callback`;
 
     const oauth2Client = new google.auth.OAuth2(

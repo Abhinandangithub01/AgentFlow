@@ -105,12 +105,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Redirect back to integrations page with success
-    const isLocalhost = request.url.includes('localhost');
-    const protocol = isLocalhost ? 'http' : 'https';
-    const host = new URL(request.url).host;
-    const redirectUrl = `${protocol}://${host}/integrations?connected=gmail`;
+    // Prioritize environment variable for production (Amplify)
+    const successBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                           process.env.AUTH0_BASE_URL ||
+                           request.url;
     
-    return NextResponse.redirect(redirectUrl);
+    const successRedirectUrl = new URL('/integrations?connected=gmail', successBaseUrl);
+    
+    return NextResponse.redirect(successRedirectUrl);
 
   } catch (error: any) {
     console.error('Gmail OAuth callback error:', {
@@ -119,12 +121,16 @@ export async function GET(request: NextRequest) {
       error,
     });
     
-    // Use HTTP for localhost, HTTPS for production
-    const isLocalhost = request.url.includes('localhost');
-    const protocol = isLocalhost ? 'http' : 'https';
-    const host = new URL(request.url).host;
-    const errorUrl = `${protocol}://${host}/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`;
+    // Redirect to error page, prioritize environment variable for production (Amplify)
+    const errorBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                         process.env.AUTH0_BASE_URL ||
+                         request.url;
     
-    return NextResponse.redirect(errorUrl);
+    const errorRedirectUrl = new URL(
+      `/integrations?error=callback_failed&details=${encodeURIComponent(error.message || 'Unknown error')}`,
+      errorBaseUrl
+    );
+    
+    return NextResponse.redirect(errorRedirectUrl);
   }
 }
