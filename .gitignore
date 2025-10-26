@@ -39,8 +39,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+*.txt
 push-*.ps1
 cleanup-*.ps1
+final-cleanup.ps1
 
 # Archive
 docs/archive/
