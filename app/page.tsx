@@ -18,7 +18,7 @@ export default function Home() {
     if (user && !isLoading) {
       router.push('/dashboard');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (

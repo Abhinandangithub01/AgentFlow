@@ -17,7 +17,7 @@ export default function IntegrationsPage() {
     if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -75,13 +75,18 @@ export default function IntegrationsPage() {
 
     if (connected) {
       setConnectedServices(prev => ({ ...prev, [connected]: true }));
-      alert(`✓ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`);
+      // Use setTimeout to avoid state updates during render
+      setTimeout(() => {
+        alert(`✓ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`);
+      }, 100);
       // Clean URL
       window.history.replaceState({}, '', '/integrations');
     }
 
     if (error) {
-      alert(`Connection failed: ${error}`);
+      setTimeout(() => {
+        alert(`Connection failed: ${error}`);
+      }, 100);
       window.history.replaceState({}, '', '/integrations');
     }
   }, []);
