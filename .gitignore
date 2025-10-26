@@ -42,7 +42,16 @@ Thumbs.db
 *.txt
 push-*.ps1
 cleanup-*.ps1
-final-cleanup.ps1
+fix-*.ps1
+commit-*.ps1
+*-fix.ps1
+
+# Temporary debugging documentation
+*_ERROR_*.md
+*_FIX*.md
+*_ANALYSIS*.md
+*_VERIFICATION*.md
+FINAL_*.md
 
 # Archive
 docs/archive/
