@@ -2,7 +2,7 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Zap } from 'lucide-react';
 import { EmailIcon, ConnectedIcon } from '@/components/icons/CustomIcons';
@@ -12,6 +12,7 @@ export default function IntegrationsPage() {
   const router = useRouter();
   const [connectedServices, setConnectedServices] = useState<Record<string, boolean>>({});
   const [connectingService, setConnectingService] = useState<string | null>(null);
+  const hasProcessedCallback = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -66,28 +67,33 @@ export default function IntegrationsPage() {
 
   // Check for OAuth callback success (client-side only)
   useEffect(() => {
-    // Only run on client side to prevent hydration mismatch
+    // Only run once, even in StrictMode
+    if (hasProcessedCallback.current) return;
     if (typeof window === 'undefined') return;
     
     const params = new URLSearchParams(window.location.search);
     const connected = params.get('connected');
     const error = params.get('error');
 
-    if (connected) {
-      setConnectedServices(prev => ({ ...prev, [connected]: true }));
-      // Use setTimeout to avoid state updates during render
-      setTimeout(() => {
-        alert(`✓ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`);
-      }, 100);
-      // Clean URL
+    if (connected || error) {
+      hasProcessedCallback.current = true;
+      
+      // Clean URL immediately
       window.history.replaceState({}, '', '/integrations');
-    }
+      
+      // Update state
+      if (connected) {
+        setConnectedServices(prev => ({ ...prev, [connected]: true }));
+        setTimeout(() => {
+          alert(`✓ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`);
+        }, 0);
+      }
 
-    if (error) {
-      setTimeout(() => {
-        alert(`Connection failed: ${error}`);
-      }, 100);
-      window.history.replaceState({}, '', '/integrations');
+      if (error) {
+        setTimeout(() => {
+          alert(`Connection failed: ${error}`);
+        }, 0);
+      }
     }
   }, []);
 
