@@ -1,0 +1,2 @@
+Force rebuild to clear Amplify cache - React error #310 fix
+Build timestamp: 2025-10-26 21:44 IST
