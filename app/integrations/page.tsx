@@ -56,15 +56,20 @@ function IntegrationsContent() {
         }
         
         // Direct connection (no OAuth needed)
-        setConnectedServices(prev => ({ ...prev, [serviceName.toLowerCase()]: true }));
-        alert(`✓ ${serviceName} connected successfully!`);
+        requestAnimationFrame(() => {
+          setConnectedServices(prev => ({ ...prev, [serviceName.toLowerCase()]: true }));
+          setShowSuccessMessage(serviceName.toLowerCase());
+          setConnectingService(null);
+        });
       } else {
         throw new Error(data.error || 'Connection failed');
       }
     } catch (error) {
       console.error('Connection error:', error);
-      alert(`Failed to connect ${serviceName}. Please try again.`);
-      setConnectingService(null);
+      requestAnimationFrame(() => {
+        setShowErrorMessage((error as Error).message || 'Connection failed');
+        setConnectingService(null);
+      });
     }
   };
 
