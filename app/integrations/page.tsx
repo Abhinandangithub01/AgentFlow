@@ -14,6 +14,7 @@ export default function IntegrationsPage() {
   const [connectingService, setConnectingService] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<string | null>(null);
   const [showErrorMessage, setShowErrorMessage] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -71,37 +72,35 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Check sessionStorage for OAuth callback results
+  // Mark component as mounted
   useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') return;
-    
-    const connected = sessionStorage.getItem('oauth_success');
-    const error = sessionStorage.getItem('oauth_error');
-
-    if (connected) {
-      // Clear from sessionStorage
-      sessionStorage.removeItem('oauth_success');
-      
-      // Update state
-      setConnectedServices(prev => ({ ...prev, [connected]: true }));
-      setShowSuccessMessage(connected);
-      
-      // Auto-hide after 5 seconds
-      setTimeout(() => setShowSuccessMessage(null), 5000);
-    }
-
-    if (error) {
-      // Clear from sessionStorage
-      sessionStorage.removeItem('oauth_error');
-      
-      // Show error
-      setShowErrorMessage(error);
-      
-      // Auto-hide after 5 seconds
-      setTimeout(() => setShowErrorMessage(null), 5000);
-    }
+    setIsMounted(true);
   }, []);
+
+  // Check sessionStorage for OAuth callback results AFTER mount
+  useEffect(() => {
+    // Only run on client side after component is fully mounted
+    if (!isMounted || typeof window === 'undefined') return;
+    
+    // Use setTimeout to defer state updates to next tick
+    setTimeout(() => {
+      const connected = sessionStorage.getItem('oauth_success');
+      const error = sessionStorage.getItem('oauth_error');
+
+      if (connected) {
+        sessionStorage.removeItem('oauth_success');
+        setConnectedServices(prev => ({ ...prev, [connected]: true }));
+        setShowSuccessMessage(connected);
+        setTimeout(() => setShowSuccessMessage(null), 5000);
+      }
+
+      if (error) {
+        sessionStorage.removeItem('oauth_error');
+        setShowErrorMessage(error);
+        setTimeout(() => setShowErrorMessage(null), 5000);
+      }
+    }, 0);
+  }, [isMounted]);
 
   const availableIntegrations = [
     { name: 'Gmail', description: 'Email management and automation', icon: 'email', color: 'red' },
