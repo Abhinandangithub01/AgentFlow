@@ -1,6 +1,28 @@
-# AgentFlow - AI Agent Platform
+# 🤖 AgentFlow - Complete AI Agent Platform
 
-**AgentFlow** is a modern AI agent platform built with Next.js 14, Auth0, and GROQ AI. Create, manage, and deploy intelligent agents that automate tasks, analyze emails, and integrate with various services.
+<div align="center">
+
+**Build powerful, autonomous AI agents with custom dashboards, RAG knowledge bases, and seamless app integrations**
+
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![AWS](https://img.shields.io/badge/AWS-Amplify-orange)](https://aws.amazon.com/amplify/)
+[![Auth0](https://img.shields.io/badge/Auth0-Enabled-red)](https://auth0.com/)
+
+</div>
+
+---
+
+## 🌟 Overview
+
+**AgentFlow** is a production-ready AI agent platform that enables users to build custom autonomous agents with:
+- 🎨 **Drag-and-drop dashboards** with resizable widgets
+- 📚 **RAG knowledge bases** with document upload
+- 🔗 **App integrations** (Gmail, Slack, Calendar)
+- 💬 **Real-time chat** with context awareness
+- 🧠 **Memory systems** (short-term, long-term, episodic)
+- ⚡ **Rules engine** for custom behavior
+- 📊 **Analytics** and execution monitoring
 
 ## 🚀 Quick Start
 
@@ -20,13 +42,28 @@ Visit `http://localhost:3000` and sign in with Auth0.
 
 ## ✨ Features
 
-- **Autonomous AI Agents**: Deploy agents that work 24/7 on your behalf
-- **Beautiful UI**: Crystal-clear activity feeds and dashboards
-- **Secure by Default**: Auth0 Token Vault manages all credentials
-- **Real-time Updates**: See exactly what your agents are doing
-- **Multi-Agent Support**: Run multiple agents simultaneously
-- **Fine-grained Permissions**: Control exactly what agents can do
-- **Gmail Integration**: Connect and manage your Gmail account
+### Core Platform
+- ✅ **Autonomous AI Agents** - Deploy agents that work 24/7
+- ✅ **Custom Dashboards** - Drag-and-drop, resizable widgets
+- ✅ **RAG System** - Upload documents, semantic search
+- ✅ **Memory System** - 4 types of agent memory
+- ✅ **Rules Engine** - Custom triggers, conditions, guardrails
+- ✅ **Planning System** - Multi-step task execution
+- ✅ **Real-time Chat** - Context-aware conversations
+
+### Integrations
+- ✅ **Gmail** - Full OAuth flow, read/send emails
+- ✅ **Slack** - Post messages, read channels
+- ✅ **Calendar** - View events, schedule meetings
+- ✅ **Custom APIs** - Connect any service
+
+### UI/UX
+- ✅ **Beautiful Design** - Modern, animated interface
+- ✅ **Dark Mode** - Full dark mode support
+- ✅ **Responsive** - Works on all devices
+- ✅ **Error Handling** - Graceful error boundaries
+- ✅ **Loading States** - Skeleton loaders everywhere
+- ✅ **Notifications** - Toast notifications for all actions
 
 ## 🏗️ Tech Stack
 
