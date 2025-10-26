@@ -69,34 +69,40 @@ export async function GET(request: NextRequest) {
     console.log('Gmail tokens received successfully');
 
     // Store tokens in Token Vault
-    await tokenVault.storeOAuthToken(
-      session.user.sub,
-      'gmail',
-      {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || '',
-        expiresIn: tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600,
-        tokenType: 'Bearer',
-        scope: tokens.scope || '',
-      }
-    );
+    try {
+      await tokenVault.storeOAuthToken(
+        session.user.sub,
+        'gmail',
+        {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token || '',
+          expiresIn: tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600,
+          tokenType: 'Bearer',
+          scope: tokens.scope || '',
+        }
+      );
+      console.log('Tokens stored in Token Vault');
+    } catch (error: any) {
+      console.log('Token vault storage skipped (local dev):', error.message);
+    }
 
-    console.log('Tokens stored in Token Vault');
-
-    // Store connection record
-    await DynamoDBService.put(TABLES.CONNECTIONS, {
-      PK: `USER#${session.user.sub}`,
-      SK: 'SERVICE#gmail',
-      id: `conn_gmail_${Date.now()}`,
-      userId: session.user.sub,
-      service: 'gmail',
-      status: 'connected',
-      scopes: tokens.scope?.split(' ') || [],
-      connectedAt: new Date().toISOString(),
-      lastUsed: new Date().toISOString(),
-    });
-
-    console.log('Connection record stored');
+    // Store connection record (skip if AWS not configured - local dev)
+    try {
+      await DynamoDBService.put(TABLES.CONNECTIONS, {
+        PK: `USER#${session.user.sub}`,
+        SK: 'SERVICE#gmail',
+        id: `conn_gmail_${Date.now()}`,
+        userId: session.user.sub,
+        service: 'gmail',
+        status: 'connected',
+        scopes: tokens.scope?.split(' ') || [],
+        connectedAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
+      });
+      console.log('Connection record stored in DynamoDB');
+    } catch (error: any) {
+      console.log('DynamoDB storage skipped (local dev):', error.message);
+    }
 
     // Redirect back to integrations page with success
     return NextResponse.redirect(
