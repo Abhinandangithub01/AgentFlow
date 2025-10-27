@@ -3,6 +3,7 @@ import { getSession } from '@auth0/nextjs-auth0';
 import { google } from 'googleapis';
 import { tokenVault } from '@/lib/token-vault';
 import { agentManager } from '@/lib/agent-manager';
+import { AIEmailProcessor } from '@/lib/ai/email-processor';
 
 export async function GET(
   request: Request,
@@ -111,16 +112,14 @@ export async function GET(
               const isUnread = emailData.data.labelIds?.includes('UNREAD');
               const isImportant = emailData.data.labelIds?.includes('IMPORTANT');
               
-              // AI-powered categorization
-              const category = categorizeEmail(subject, from);
-              const priority = isImportant ? 'urgent' : (isUnread ? 'high' : 'normal');
-              const aiRecommendation = generateAIRecommendation(subject, from, category, priority);
+              // Advanced AI analysis using AIEmailProcessor
+              const aiAnalysis = AIEmailProcessor.analyzeEmail(subject, from, '');
               
               activities.push({
                 id: message.id,
                 agentId,
-                type: isImportant ? 'action_required' : 'success',
-                icon: isImportant ? '⚠️' : '📧',
+                type: aiAnalysis.priority === 'urgent' ? 'action_required' : 'success',
+                icon: aiAnalysis.priority === 'urgent' ? '⚠️' : '📧',
                 title: isUnread ? `New email: ${subject}` : `Read: ${subject}`,
                 description: `From: ${from}`,
                 timestamp: date || new Date().toISOString(),
@@ -132,11 +131,16 @@ export async function GET(
                   messageId: message.id
                 },
                 aiInsights: {
-                  category,
-                  priority,
-                  recommendation: aiRecommendation,
-                  suggestedActions: getSuggestedActions(category, priority),
-                  estimatedResponseTime: estimateResponseTime(priority)
+                  category: aiAnalysis.category,
+                  priority: aiAnalysis.priority,
+                  sentiment: aiAnalysis.sentiment,
+                  intent: aiAnalysis.intent,
+                  keyPoints: aiAnalysis.keyPoints,
+                  recommendation: aiAnalysis.suggestedReply,
+                  suggestedActions: aiAnalysis.actionItems,
+                  estimatedResponseTime: aiAnalysis.estimatedResponseTime,
+                  requiresAction: aiAnalysis.requiresAction,
+                  schedulingInfo: aiAnalysis.schedulingInfo
                 }
               });
             } catch (err) {
