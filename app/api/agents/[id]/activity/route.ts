@@ -18,18 +18,26 @@ export async function GET(
     const agentId = params.id;
     const userId = session.user.sub;
 
-    console.log('[Activity] Fetching real Gmail data for agent:', agentId);
+    console.log('[Activity] Fetching real Gmail data for agent:', agentId, 'user:', userId);
 
     // Get agent to check which services are connected
     const agent = await agentManager.getAgent(agentId, userId);
     if (!agent) {
+      console.log('[Activity] Agent not found:', agentId);
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
+
+    console.log('[Activity] Agent found:', agent.name);
+    console.log('[Activity] Agent metadata:', JSON.stringify(agent.metadata, null, 2));
 
     const activities: any[] = [];
 
     // Fetch Gmail activity if Gmail is connected
     const agentConfig = agent.metadata?.config || agent.metadata;
+    console.log('[Activity] Agent config:', JSON.stringify(agentConfig, null, 2));
+    console.log('[Activity] Services in config:', agentConfig?.services);
+    console.log('[Activity] Checking if gmail is in services:', agentConfig?.services?.includes('gmail'));
+    
     if (agentConfig?.services?.includes('gmail')) {
       try {
         // Get Gmail token from vault
@@ -145,10 +153,14 @@ export async function GET(
           timestamp: new Date().toISOString()
         });
       }
+    } else {
+      console.log('[Activity] Gmail NOT in agent services. Agent config services:', agentConfig?.services);
+      console.log('[Activity] Full agent object:', JSON.stringify(agent, null, 2));
     }
 
     // If no activities yet, add a placeholder
     if (activities.length === 0) {
+      console.log('[Activity] No activities found, adding placeholder');
       activities.push({
         id: 'no-activity',
         agentId,
