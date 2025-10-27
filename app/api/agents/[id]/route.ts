@@ -14,15 +14,19 @@ export async function GET(
     }
 
     const agentId = params.id;
+    const userId = session.user.sub;
 
-    console.log('[API] Fetching agent:', agentId, 'for user:', session.user.sub);
+    console.log('[API GET] Fetching agent:', agentId, 'for user:', userId);
 
     // Fetch agent from agent manager
-    const agent = await agentManager.getAgent(agentId, session.user.sub);
+    const agent = await agentManager.getAgent(agentId, userId);
 
     if (!agent) {
+      console.log('[API GET] Agent not found:', agentId);
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
+
+    console.log('[API GET] Agent found:', agent.name, 'status:', agent.status);
 
     return NextResponse.json({ agent });
   } catch (error) {
@@ -43,38 +47,38 @@ export async function PATCH(
     }
 
     const agentId = params.id;
+    const userId = session.user.sub;
     const body = await request.json();
 
-    console.log('[API] Updating agent:', agentId, 'with:', body);
+    console.log('[API PATCH] Updating agent:', agentId, 'for user:', userId, 'with:', body);
 
     // Update agent status
     if (body.status) {
+      console.log('[API PATCH] Updating status to:', body.status);
       const agent = body.status === 'active' 
-        ? await agentManager.startAgent(agentId, session.user.sub)
-        : await agentManager.pauseAgent(agentId, session.user.sub);
+        ? await agentManager.startAgent(agentId, userId)
+        : await agentManager.pauseAgent(agentId, userId);
       
+      console.log('[API PATCH] Status updated successfully');
       return NextResponse.json({ agent });
     }
 
-    // For other updates, fetch and update manually
-    const agent = await agentManager.getAgent(agentId, session.user.sub);
+    // For other updates, use agent manager
+    const agent = await agentManager.getAgent(agentId, userId);
     if (!agent) {
+      console.log('[API PATCH] Agent not found:', agentId);
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    const updatedAgent = {
-      ...agent,
-      ...body,
-      updatedAt: new Date().toISOString()
-    };
+    // Update agent fields
+    Object.assign(agent, body);
+    agent.updatedAt = new Date().toISOString();
 
-    // Save updated agent
-    if (typeof window === 'undefined') {
-      global.agents = global.agents || new Map();
-      global.agents.set(agentId, updatedAgent);
-    }
+    // Save using agent manager (will save to DynamoDB)
+    await agentManager.saveAgent(agent);
 
-    return NextResponse.json({ agent: updatedAgent });
+    console.log('[API PATCH] Agent updated successfully');
+    return NextResponse.json({ agent });
   } catch (error) {
     console.error('Error updating agent:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -93,15 +97,19 @@ export async function DELETE(
     }
 
     const agentId = params.id;
+    const userId = session.user.sub;
 
-    console.log('[API] Deleting agent:', agentId, 'for user:', session.user.sub);
+    console.log('[API DELETE] Deleting agent:', agentId, 'for user:', userId);
 
     // Delete agent
-    const success = await agentManager.deleteAgent(agentId, session.user.sub);
+    const success = await agentManager.deleteAgent(agentId, userId);
 
     if (!success) {
+      console.log('[API DELETE] Agent not found:', agentId);
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
+
+    console.log('[API DELETE] Agent deleted successfully');
 
     return NextResponse.json({ success: true, id: agentId });
   } catch (error) {

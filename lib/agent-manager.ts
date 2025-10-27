@@ -357,9 +357,9 @@ export class AgentManager {
     }
   }
 
-  // Private helper methods
+  // Helper methods
 
-  private async saveAgent(agent: AIAgent): Promise<void> {
+  async saveAgent(agent: AIAgent): Promise<void> {
     if (typeof window === 'undefined') {
       try {
         // Save to DynamoDB for persistence
