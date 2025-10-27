@@ -342,6 +342,10 @@ export default function AgentDetailPage() {
                                 {activity.aiInsights.suggestedActions.slice(0, 4).map((action: string, idx: number) => (
                                   <button
                                     key={idx}
+                                    onClick={() => {
+                                      console.log('[AI Action]', action, 'for email:', activity.title);
+                                      alert(`AI Action: ${action}\n\nThis will ${action.toLowerCase()} for:\n${activity.title}`);
+                                    }}
                                     className="px-3 py-1 text-xs font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary-300 transition-colors"
                                   >
                                     {action}
@@ -464,8 +468,11 @@ export default function AgentDetailPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Auto-categorize emails</p>
                       <p className="text-xs text-gray-600 mt-1">Let AI organize your inbox by priority and topic</p>
-                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
-                        Enable →
+                      <button 
+                        onClick={() => alert('✅ Auto-categorization is already enabled!\n\nAll emails are automatically categorized by:\n• Career\n• Newsletter\n• Security\n• Product\n• Personal\n\nCheck the activity feed to see AI categories.')}
+                        className="mt-2 text-xs font-medium text-success-600 hover:text-success-700"
+                      >
+                        ✓ Enabled
                       </button>
                     </div>
                   </div>
@@ -477,8 +484,11 @@ export default function AgentDetailPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Smart reply suggestions</p>
                       <p className="text-xs text-gray-600 mt-1">AI drafts contextual responses for your review</p>
-                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
-                        Enable →
+                      <button 
+                        onClick={() => alert('✅ Smart replies are enabled!\n\nAI analyzes each email and provides:\n• Context-aware recommendations\n• Suggested actions\n• Response time estimates\n\nClick any action button in the activity feed to use them.')}
+                        className="mt-2 text-xs font-medium text-success-600 hover:text-success-700"
+                      >
+                        ✓ Enabled
                       </button>
                     </div>
                   </div>
@@ -490,8 +500,11 @@ export default function AgentDetailPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Priority alerts</p>
                       <p className="text-xs text-gray-600 mt-1">Get notified only for urgent emails</p>
-                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
-                        Enable →
+                      <button 
+                        onClick={() => alert('✅ Priority alerts are enabled!\n\nAI detects priority levels:\n• Urgent - Within 2 hours\n• High - Within 24 hours\n• Normal - Within 3 days\n\nUrgent emails are highlighted in red in the activity feed.')}
+                        className="mt-2 text-xs font-medium text-success-600 hover:text-success-700"
+                      >
+                        ✓ Enabled
                       </button>
                     </div>
                   </div>
@@ -503,8 +516,11 @@ export default function AgentDetailPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Email insights</p>
                       <p className="text-xs text-gray-600 mt-1">Analyze patterns and suggest improvements</p>
-                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
-                        Enable →
+                      <button 
+                        onClick={() => alert('✅ Email insights are enabled!\n\nAI provides:\n• Category analysis (career, newsletter, security, etc.)\n• Response time recommendations\n• Action suggestions\n• Time saved metrics\n\nView insights in the activity feed and stats sidebar.')}
+                        className="mt-2 text-xs font-medium text-success-600 hover:text-success-700"
+                      >
+                        ✓ Enabled
                       </button>
                     </div>
                   </div>

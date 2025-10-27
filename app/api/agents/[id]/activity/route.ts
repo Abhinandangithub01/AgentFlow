@@ -36,9 +36,17 @@ export async function GET(
     const agentConfig = agent.metadata?.config || agent.metadata;
     console.log('[Activity] Agent config:', JSON.stringify(agentConfig, null, 2));
     console.log('[Activity] Services in config:', agentConfig?.services);
-    console.log('[Activity] Checking if gmail is in services:', agentConfig?.services?.includes('gmail'));
     
-    if (agentConfig?.services?.includes('gmail')) {
+    // Check if Gmail is in services OR if agent type suggests email functionality
+    const hasGmailService = agentConfig?.services?.includes('gmail') || 
+                           agentConfig?.services?.includes('Gmail') ||
+                           agent.type === 'email_assistant' ||
+                           agent.name?.toLowerCase().includes('gmail') ||
+                           agent.name?.toLowerCase().includes('email');
+    
+    console.log('[Activity] Should fetch Gmail:', hasGmailService);
+    
+    if (hasGmailService) {
       try {
         // Get Gmail token from vault
         const gmailToken = await tokenVault.getOAuthToken(userId, 'gmail');
@@ -59,18 +67,34 @@ export async function GET(
           
           const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
           
-          // Fetch recent emails
+          // Fetch emails from past 24 hours (more reliable query)
+          const oneDayAgo = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
+          console.log('[Activity] Fetching emails after:', new Date(oneDayAgo * 1000).toISOString());
+          
           const response = await gmail.users.messages.list({
             userId: 'me',
-            maxResults: 10,
-            q: 'is:unread OR newer_than:1d'
+            maxResults: 20,
+            q: `after:${oneDayAgo}`
           });
           
           const messages = response.data.messages || [];
-          console.log('[Activity] Found', messages.length, 'recent emails');
+          console.log('[Activity] Found', messages.length, 'recent emails from past 24 hours');
           
-          // Fetch details for each email
-          for (const message of messages.slice(0, 5)) {
+          if (messages.length === 0) {
+            console.log('[Activity] No emails found in past 24 hours');
+            activities.push({
+              id: 'no-emails',
+              agentId,
+              type: 'info',
+              icon: '📭',
+              title: 'No recent emails',
+              description: 'No emails received in the past 24 hours',
+              timestamp: new Date().toISOString()
+            });
+          }
+          
+          // Fetch details for each email (process up to 10)
+          for (const message of messages.slice(0, 10)) {
             try {
               const emailData = await gmail.users.messages.get({
                 userId: 'me',
