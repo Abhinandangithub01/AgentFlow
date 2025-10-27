@@ -17,6 +17,13 @@ interface AgentActivity {
   description: string;
   timestamp: string;
   details?: any;
+  aiInsights?: {
+    category: string;
+    priority: string;
+    recommendation: string;
+    suggestedActions: string[];
+    estimatedResponseTime: string;
+  };
 }
 
 export default function AgentDetailPage() {
@@ -305,20 +312,43 @@ export default function AgentDetailPage() {
                           </span>
                         </div>
 
-                        {activity.details && activity.type === 'info' && (
-                          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
-                            <div className="flex items-center justify-between text-xs mb-2">
-                              <span className="text-gray-600">Confidence</span>
-                              <span className="font-medium text-primary-600">
-                                {activity.details.confidence}%
+                        {/* AI Insights */}
+                        {activity.aiInsights && (
+                          <div className="mt-3 space-y-2">
+                            <div className="p-3 bg-gradient-to-r from-primary-50 to-purple-50 rounded-lg border border-primary-200">
+                              <div className="flex items-start space-x-2">
+                                <Bot className="h-4 w-4 text-primary-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <p className="text-xs font-semibold text-primary-900 mb-1">AI Recommendation</p>
+                                  <p className="text-xs text-gray-700">{activity.aiInsights.recommendation}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 text-xs">
+                              <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded-full font-medium">
+                                {activity.aiInsights.category}
+                              </span>
+                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
+                                {activity.aiInsights.priority}
+                              </span>
+                              <span className="text-gray-600">
+                                ⏱️ {activity.aiInsights.estimatedResponseTime}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Tone</span>
-                              <span className="font-medium text-gray-900">
-                                {activity.details.tone}
-                              </span>
-                            </div>
+                            
+                            {activity.aiInsights.suggestedActions && activity.aiInsights.suggestedActions.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {activity.aiInsights.suggestedActions.slice(0, 4).map((action: string, idx: number) => (
+                                  <button
+                                    key={idx}
+                                    className="px-3 py-1 text-xs font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary-300 transition-colors"
+                                  >
+                                    {action}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -421,39 +451,64 @@ export default function AgentDetailPage() {
               </div>
             </div>
 
-            {/* Connected Services */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Connected Services</h3>
+            {/* AI Recommendations */}
+            <div className="bg-gradient-to-br from-primary-50 to-purple-50 rounded-xl border border-primary-200 p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Bot className="h-5 w-5 text-primary-600" />
+                <h3 className="font-bold text-gray-900">AI Recommendations</h3>
+              </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
-                      <Mail className="h-4 w-4 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Gmail</p>
-                      <p className="text-xs text-gray-600">Read, Send</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium text-success-600">✓ Connected</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Slack</p>
-                      <p className="text-xs text-gray-600">Post Messages</p>
+                <div className="bg-white rounded-lg p-3 border border-primary-100">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-lg">🎯</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Auto-categorize emails</p>
+                      <p className="text-xs text-gray-600 mt-1">Let AI organize your inbox by priority and topic</p>
+                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
+                        Enable →
+                      </button>
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-success-600">✓ Connected</span>
                 </div>
 
-                <button className="w-full py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg border-2 border-dashed border-primary-300">
-                  + Add Service
-                </button>
+                <div className="bg-white rounded-lg p-3 border border-primary-100">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-lg">✍️</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Smart reply suggestions</p>
+                      <p className="text-xs text-gray-600 mt-1">AI drafts contextual responses for your review</p>
+                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
+                        Enable →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-3 border border-primary-100">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-lg">⚡</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Priority alerts</p>
+                      <p className="text-xs text-gray-600 mt-1">Get notified only for urgent emails</p>
+                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
+                        Enable →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-3 border border-primary-100">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-lg">📊</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Email insights</p>
+                      <p className="text-xs text-gray-600 mt-1">Analyze patterns and suggest improvements</p>
+                      <button className="mt-2 text-xs font-medium text-primary-600 hover:text-primary-700">
+                        Enable →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

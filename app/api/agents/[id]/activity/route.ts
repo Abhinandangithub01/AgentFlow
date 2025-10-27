@@ -87,6 +87,11 @@ export async function GET(
               const isUnread = emailData.data.labelIds?.includes('UNREAD');
               const isImportant = emailData.data.labelIds?.includes('IMPORTANT');
               
+              // AI-powered categorization
+              const category = categorizeEmail(subject, from);
+              const priority = isImportant ? 'urgent' : (isUnread ? 'high' : 'normal');
+              const aiRecommendation = generateAIRecommendation(subject, from, category, priority);
+              
               activities.push({
                 id: message.id,
                 agentId,
@@ -101,6 +106,13 @@ export async function GET(
                   isUnread,
                   isImportant,
                   messageId: message.id
+                },
+                aiInsights: {
+                  category,
+                  priority,
+                  recommendation: aiRecommendation,
+                  suggestedActions: getSuggestedActions(category, priority),
+                  estimatedResponseTime: estimateResponseTime(priority)
                 }
               });
             } catch (err) {
@@ -206,4 +218,85 @@ export async function POST(
     console.error('Error creating activity:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// AI Helper Functions
+function categorizeEmail(subject: string, from: string): string {
+  const subjectLower = subject.toLowerCase();
+  const fromLower = from.toLowerCase();
+  
+  // Job/Career related
+  if (subjectLower.includes('job') || subjectLower.includes('career') || subjectLower.includes('interview') || 
+      subjectLower.includes('position') || subjectLower.includes('hiring') || fromLower.includes('linkedin') ||
+      fromLower.includes('job') || fromLower.includes('recruit')) {
+    return 'career';
+  }
+  
+  // Newsletters
+  if (subjectLower.includes('newsletter') || subjectLower.includes('digest') || subjectLower.includes('weekly') ||
+      subjectLower.includes('update') || fromLower.includes('newsletter') || fromLower.includes('noreply')) {
+    return 'newsletter';
+  }
+  
+  // Security/Alerts
+  if (subjectLower.includes('security') || subjectLower.includes('alert') || subjectLower.includes('warning') ||
+      subjectLower.includes('suspicious') || subjectLower.includes('verify') || subjectLower.includes('password')) {
+    return 'security';
+  }
+  
+  // Product/Marketing
+  if (subjectLower.includes('product') || subjectLower.includes('launch') || subjectLower.includes('new feature') ||
+      subjectLower.includes('update') || subjectLower.includes('announcement')) {
+    return 'product';
+  }
+  
+  // Personal
+  if (!fromLower.includes('noreply') && !fromLower.includes('@') || fromLower.includes('gmail.com')) {
+    return 'personal';
+  }
+  
+  return 'general';
+}
+
+function generateAIRecommendation(subject: string, from: string, category: string, priority: string): string {
+  const recommendations: Record<string, string> = {
+    career: priority === 'urgent' 
+      ? 'Respond within 24 hours to maintain professional interest' 
+      : 'Review and respond when you have time to craft a thoughtful reply',
+    newsletter: 'Archive for later reading or unsubscribe if not valuable',
+    security: 'Review immediately and take necessary action to secure your account',
+    product: 'Read to stay updated on product changes that may affect your workflow',
+    personal: priority === 'urgent'
+      ? 'Respond promptly to maintain personal relationships'
+      : 'Reply when convenient',
+    general: 'Review and categorize appropriately'
+  };
+  
+  return recommendations[category] || recommendations.general;
+}
+
+function getSuggestedActions(category: string, priority: string): string[] {
+  const baseActions = ['Reply', 'Archive', 'Mark as Read'];
+  
+  const categoryActions: Record<string, string[]> = {
+    career: ['Draft Reply', 'Schedule Interview', 'Save to Jobs Folder', 'Forward to Recruiter'],
+    newsletter: ['Read Later', 'Unsubscribe', 'Mark as Read', 'Archive'],
+    security: ['Verify Account', 'Change Password', 'Enable 2FA', 'Report Phishing'],
+    product: ['Read Now', 'Share with Team', 'Add to Notes', 'Archive'],
+    personal: ['Reply', 'Schedule Call', 'Add to Calendar', 'Forward'],
+    general: baseActions
+  };
+  
+  return categoryActions[category] || baseActions;
+}
+
+function estimateResponseTime(priority: string): string {
+  const times: Record<string, string> = {
+    urgent: 'Within 2 hours',
+    high: 'Within 24 hours',
+    normal: 'Within 3 days',
+    low: 'When convenient'
+  };
+  
+  return times[priority] || times.normal;
 }
