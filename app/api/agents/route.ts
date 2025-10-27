@@ -61,6 +61,17 @@ export async function POST(request: Request) {
 
     console.log('[API] Agent created:', newAgent);
 
+    // Wait a moment to ensure DynamoDB consistency
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Verify agent was saved
+    const verifyAgent = await agentManager.getAgent(newAgent.id, session.user.sub);
+    if (!verifyAgent) {
+      console.warn('[API] Agent created but not immediately retrievable, using created object');
+    } else {
+      console.log('[API] Agent verified in storage');
+    }
+
     return NextResponse.json({ agent: newAgent }, { status: 201 });
   } catch (error) {
     console.error('Error creating agent:', error);
