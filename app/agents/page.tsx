@@ -136,6 +136,19 @@ export default function AgentsPage() {
     fetchAgents();
   }, [user]);
 
+  // Auto-populate services when template is selected
+  useEffect(() => {
+    if (selectedTemplate && selectedTemplate.id !== 'custom') {
+      // For template agents, use template services (lowercase for API consistency)
+      const templateServices = selectedTemplate.services.map(s => s.toLowerCase());
+      setSelectedServices(templateServices);
+      console.log('[Template Selected] Auto-populated services:', templateServices);
+    } else if (selectedTemplate?.id === 'custom') {
+      // For custom agents, start with empty selection
+      setSelectedServices([]);
+    }
+  }, [selectedTemplate]);
+
   const handleCreateAgent = async () => {
     console.log('[Agent Creation]', {
       agentName,
