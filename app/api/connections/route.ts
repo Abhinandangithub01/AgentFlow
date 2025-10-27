@@ -14,46 +14,55 @@ export async function GET(request: NextRequest) {
 
     let connections: any[] = [];
 
+    console.log('[Connections API] Fetching connections for user:', session.user.sub);
+
     // Try DynamoDB first
     try {
       connections = await DynamoDBService.query(
         TABLES.CONNECTIONS,
-        'PK = :pk',
-        { ':pk': `USER#${session.user.sub}` }
+        'PK = :pk AND begins_with(SK, :sk)',
+        { 
+          ':pk': `USER#${session.user.sub}`,
+          ':sk': 'SERVICE#'
+        }
       );
-    } catch (dbError) {
-      console.log('DynamoDB not available, checking Token Vault directly');
+      console.log('[Connections API] DynamoDB returned:', connections.length, 'connections');
+    } catch (dbError: any) {
+      console.log('[Connections API] DynamoDB error:', dbError.message);
     }
 
-    // If no connections from DynamoDB, check Token Vault directly
-    if (connections.length === 0) {
-      console.log('[Connections API] DynamoDB returned no connections, checking Token Vault...');
-      const services = ['gmail', 'slack', 'google-calendar', 'notion', 'twitter', 'linkedin'];
-      const vaultConnections = [];
+    // Always check Token Vault as well (for redundancy)
+    console.log('[Connections API] Checking Token Vault for all services...');
+    const services = ['gmail', 'slack', 'google-calendar', 'notion', 'twitter', 'linkedin'];
+    const vaultConnections = [];
 
-      for (const service of services) {
-        try {
-          const token = await tokenVault.getOAuthToken(session.user.sub, service);
-          console.log(`[Connections API] Checked ${service}:`, !!token);
-          if (token && token.accessToken) {
+    for (const service of services) {
+      try {
+        const token = await tokenVault.getOAuthToken(session.user.sub, service);
+        console.log(`[Connections API] ${service}: token exists =`, !!token, ', has accessToken =', !!token?.accessToken);
+        if (token && token.accessToken) {
+          // Check if already in connections from DynamoDB
+          const existsInDB = connections.some(c => c.service === service);
+          if (!existsInDB) {
             vaultConnections.push({
               id: `${session.user.sub}-${service}`,
               service: service,
-              status: 'active',
+              status: 'connected',
               scopes: [],
               connectedAt: new Date().toISOString(),
               lastUsed: new Date().toISOString(),
             });
-            console.log(`[Connections API] Added ${service} to connections`);
+            console.log(`[Connections API] Added ${service} from Token Vault`);
           }
-        } catch (err) {
-          console.log(`[Connections API] Error checking ${service}:`, err);
         }
+      } catch (err: any) {
+        console.log(`[Connections API] Error checking ${service}:`, err.message);
       }
-
-      connections = vaultConnections;
-      console.log(`[Connections API] Total connections found: ${connections.length}`);
     }
+
+    // Merge connections from both sources
+    connections = [...connections, ...vaultConnections];
+    console.log(`[Connections API] Total connections: ${connections.length}`);
 
     // Don't expose tokens
     const safeConnections = connections.map(conn => ({

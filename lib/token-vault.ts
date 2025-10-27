@@ -75,19 +75,27 @@ export class TokenVaultService {
     try {
       // In production, retrieve from Auth0 Token Vault
       const vaultKey = this.generateVaultKey(userId, service, agentId);
+      console.log(`[TokenVault] Getting token for key: ${vaultKey}`);
       const tokens = await this.decryptAndRetrieve(vaultKey);
+      
+      if (tokens) {
+        console.log(`[TokenVault] Token found for ${service}, has accessToken:`, !!tokens.accessToken);
+      } else {
+        console.log(`[TokenVault] No token found for ${service}`);
+      }
       
       // Check if token is expired and refresh if needed
       if (tokens && tokens.refreshToken) {
         const isExpired = await this.isTokenExpired(vaultKey);
         if (isExpired) {
+          console.log(`[TokenVault] Token expired for ${service}, refreshing...`);
           return await this.refreshToken(userId, service, tokens.refreshToken, agentId);
         }
       }
       
       return tokens;
-    } catch (error) {
-      console.error('Error retrieving OAuth token:', error);
+    } catch (error: any) {
+      console.error(`[TokenVault] Error retrieving OAuth token for ${service}:`, error.message);
       return null;
     }
   }
