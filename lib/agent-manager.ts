@@ -255,29 +255,43 @@ export class AgentManager {
    */
   async getAgent(agentId: string, userId: string): Promise<AIAgent | null> {
     if (typeof window === 'undefined') {
+      console.log(`[AgentManager] Attempting to get agent: ${agentId} for user: ${userId}`);
       try {
         // Try DynamoDB first
-        const item = await DynamoDBService.get(TABLES.AGENTS, {
+        const keys = {
           PK: `USER#${userId}`,
           SK: `AGENT#${agentId}`,
-        });
+        };
+        console.log(`[AgentManager] DynamoDB GET with keys:`, keys);
+        const item = await DynamoDBService.get(TABLES.AGENTS, keys);
         
         if (item) {
-          console.log(`[AgentManager] Retrieved agent from DynamoDB: ${agentId}`);
+          console.log(`[AgentManager] ✅ Retrieved agent from DynamoDB: ${agentId}`);
+          // Also cache in memory
+          global.agents = global.agents || new Map();
+          global.agents.set(agentId, item as AIAgent);
           return item as AIAgent;
+        } else {
+          console.log(`[AgentManager] ⚠️ Agent not found in DynamoDB: ${agentId}`);
         }
       } catch (error: any) {
-        console.error(`[AgentManager] DynamoDB get failed:`, error.message);
+        console.error(`[AgentManager] ❌ DynamoDB get failed:`, error);
+        console.error(`[AgentManager] Error details:`, error.message);
       }
       
       // Fallback to memory
+      console.log(`[AgentManager] Checking memory cache...`);
       global.agents = global.agents || new Map();
+      console.log(`[AgentManager] Memory cache size:`, global.agents.size);
       const agent = global.agents.get(agentId);
       if (agent && agent.userId === userId) {
-        console.log(`[AgentManager] Retrieved agent from memory: ${agentId}`);
+        console.log(`[AgentManager] ✅ Retrieved agent from memory: ${agentId}`);
         return agent;
+      } else {
+        console.log(`[AgentManager] ❌ Agent not found in memory: ${agentId}`);
       }
     }
+    console.log(`[AgentManager] ❌ Agent not found anywhere: ${agentId}`);
     return null;
   }
 
@@ -361,20 +375,29 @@ export class AgentManager {
 
   async saveAgent(agent: AIAgent): Promise<void> {
     if (typeof window === 'undefined') {
+      console.log(`[AgentManager] Attempting to save agent: ${agent.id} for user: ${agent.userId}`);
       try {
         // Save to DynamoDB for persistence
-        await DynamoDBService.put(TABLES.AGENTS, {
+        const item = {
           PK: `USER#${agent.userId}`,
           SK: `AGENT#${agent.id}`,
           ...agent,
-        });
-        console.log(`[AgentManager] Saved agent to DynamoDB: ${agent.id}`);
+        };
+        console.log(`[AgentManager] DynamoDB PUT with keys:`, { PK: item.PK, SK: item.SK });
+        await DynamoDBService.put(TABLES.AGENTS, item);
+        console.log(`[AgentManager] ✅ Saved agent to DynamoDB: ${agent.id}`);
+        
+        // Also save to memory as cache
+        global.agents = global.agents || new Map();
+        global.agents.set(agent.id, agent);
+        console.log(`[AgentManager] ✅ Cached agent in memory: ${agent.id}`);
       } catch (error: any) {
-        console.error(`[AgentManager] DynamoDB save failed, using memory:`, error.message);
+        console.error(`[AgentManager] ❌ DynamoDB save failed:`, error);
+        console.error(`[AgentManager] Error details:`, error.message, error.stack);
         // Fallback to memory if DynamoDB fails
         global.agents = global.agents || new Map();
         global.agents.set(agent.id, agent);
-        console.log(`[AgentManager] Saved agent to memory: ${agent.id}`);
+        console.log(`[AgentManager] ⚠️ Saved agent to memory only: ${agent.id}`);
       }
     }
   }
