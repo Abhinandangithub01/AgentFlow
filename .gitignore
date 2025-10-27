@@ -55,3 +55,7 @@ FINAL_*.md
 
 # Archive
 docs/archive/
+
+# File-based storage (fallback when DynamoDB unavailable)
+.data/
+*.json.backup

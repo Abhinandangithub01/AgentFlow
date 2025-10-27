@@ -11,6 +11,7 @@ import {
   BatchWriteCommand,
   BatchGetCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { FileStorage } from '../file-storage';
 
 // Initialize DynamoDB Client
 const client = new DynamoDBClient({
@@ -45,31 +46,72 @@ export const TABLES = {
   ANALYTICS: process.env.DYNAMODB_ANALYTICS_TABLE || 'AgentFlow-Analytics',
 };
 
+// Check if DynamoDB is available
+let dynamoDBAvailable: boolean | null = null;
+
+async function checkDynamoDBAvailability(): Promise<boolean> {
+  if (dynamoDBAvailable !== null) return dynamoDBAvailable;
+  
+  try {
+    // Try a simple operation to check if DynamoDB is available
+    await docClient.send(new GetCommand({
+      TableName: TABLES.AGENTS,
+      Key: { PK: 'TEST', SK: 'TEST' }
+    }));
+    dynamoDBAvailable = true;
+    console.log('[DynamoDB] ✅ DynamoDB is available');
+    return true;
+  } catch (error: any) {
+    if (error.name === 'ResourceNotFoundException' || error.name === 'UnrecognizedClientException') {
+      console.log('[DynamoDB] ⚠️ DynamoDB not available, using file storage fallback');
+      dynamoDBAvailable = false;
+      return false;
+    }
+    // Table exists but query failed for other reason
+    dynamoDBAvailable = true;
+    return true;
+  }
+}
+
 // Generic CRUD operations
 export class DynamoDBService {
   /**
    * Put item into table
    */
   static async put(tableName: string, item: any): Promise<void> {
-    await docClient.send(
-      new PutCommand({
-        TableName: tableName,
-        Item: item,
-      })
-    );
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: item,
+        })
+      );
+      console.log(`[DynamoDB] ✅ PUT ${tableName}`);
+    } catch (error: any) {
+      console.error(`[DynamoDB] ❌ PUT failed:`, error.message);
+      console.log(`[DynamoDB] Using file storage fallback`);
+      await FileStorage.put(tableName, item);
+    }
   }
 
   /**
    * Get item from table
    */
   static async get(tableName: string, key: Record<string, any>): Promise<any> {
-    const result = await docClient.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: key,
-      })
-    );
-    return result.Item;
+    try {
+      const result = await docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: key,
+        })
+      );
+      console.log(`[DynamoDB] ✅ GET ${tableName}:`, result.Item ? 'found' : 'not found');
+      return result.Item;
+    } catch (error: any) {
+      console.error(`[DynamoDB] ❌ GET failed:`, error.message);
+      console.log(`[DynamoDB] Using file storage fallback`);
+      return await FileStorage.get(tableName, key as { PK: string; SK: string });
+    }
   }
 
   /**
@@ -81,15 +123,22 @@ export class DynamoDBService {
     expressionAttributeValues: Record<string, any>,
     indexName?: string
   ): Promise<any[]> {
-    const result = await docClient.send(
-      new QueryCommand({
-        TableName: tableName,
-        KeyConditionExpression: keyConditionExpression,
-        ExpressionAttributeValues: expressionAttributeValues,
-        IndexName: indexName,
-      })
-    );
-    return result.Items || [];
+    try {
+      const result = await docClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: keyConditionExpression,
+          ExpressionAttributeValues: expressionAttributeValues,
+          IndexName: indexName,
+        })
+      );
+      console.log(`[DynamoDB] ✅ QUERY ${tableName}: found ${result.Items?.length || 0} items`);
+      return result.Items || [];
+    } catch (error: any) {
+      console.error(`[DynamoDB] ❌ QUERY failed:`, error.message);
+      console.log(`[DynamoDB] Using file storage fallback`);
+      return await FileStorage.query(tableName, keyConditionExpression, expressionAttributeValues);
+    }
   }
 
   /**
@@ -119,12 +168,19 @@ export class DynamoDBService {
    * Delete item from table
    */
   static async delete(tableName: string, key: Record<string, any>): Promise<void> {
-    await docClient.send(
-      new DeleteCommand({
-        TableName: tableName,
-        Key: key,
-      })
-    );
+    try {
+      await docClient.send(
+        new DeleteCommand({
+          TableName: tableName,
+          Key: key,
+        })
+      );
+      console.log(`[DynamoDB] ✅ DELETE ${tableName}`);
+    } catch (error: any) {
+      console.error(`[DynamoDB] ❌ DELETE failed:`, error.message);
+      console.log(`[DynamoDB] Using file storage fallback`);
+      await FileStorage.delete(tableName, key as { PK: string; SK: string });
+    }
   }
 
   /**
