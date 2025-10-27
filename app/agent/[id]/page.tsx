@@ -30,6 +30,7 @@ export default function AgentDetailPage() {
   const [isPausing, setIsPausing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingActivities, setLoadingActivities] = useState(true);
+  const [fetchAttempts, setFetchAttempts] = useState(0);
 
   const [activities, setActivities] = useState<AgentActivity[]>([]);
 
@@ -46,17 +47,46 @@ export default function AgentDetailPage() {
     const fetchAgent = async () => {
       setLoadingAgent(true);
       try {
+        console.log('[Agent Detail] Fetching agent:', agentId, 'Attempt:', fetchAttempts + 1);
         const res = await fetch(`/api/agents/${agentId}`);
+        console.log('[Agent Detail] Response status:', res.status);
+        
         if (res.ok) {
           const data = await res.json();
-          console.log('[Agent Detail] Fetched:', data);
+          console.log('[Agent Detail] Fetched agent:', data);
           setAgent(data.agent);
+          setFetchAttempts(0); // Reset on success
         } else {
-          console.error('[Agent Detail] Failed to fetch agent');
+          const errorData = await res.json().catch(() => ({}));
+          console.error('[Agent Detail] Failed to fetch agent:', res.status, errorData);
+          
+          // Retry once after 1 second if first attempt fails
+          if (fetchAttempts === 0) {
+            console.log('[Agent Detail] Retrying in 1 second...');
+            setFetchAttempts(1);
+            setTimeout(() => {
+              fetchAgent();
+            }, 1000);
+            return;
+          }
+          
+          alert(`Agent not found (${res.status}). This may be a persistence issue. Redirecting to agents list...`);
           router.push('/agents');
         }
       } catch (error) {
-        console.error('[Agent Detail] Error:', error);
+        console.error('[Agent Detail] Error fetching agent:', error);
+        
+        // Retry once if first attempt fails
+        if (fetchAttempts === 0) {
+          console.log('[Agent Detail] Retrying after error in 1 second...');
+          setFetchAttempts(1);
+          setTimeout(() => {
+            fetchAgent();
+          }, 1000);
+          return;
+        }
+        
+        alert('Error loading agent. Redirecting to agents list...');
         router.push('/agents');
       } finally {
         setLoadingAgent(false);
@@ -64,7 +94,7 @@ export default function AgentDetailPage() {
     };
 
     fetchAgent();
-  }, [user, agentId]);
+  }, [user, agentId, fetchAttempts]);
 
   // Fetch activities from API
   useEffect(() => {
