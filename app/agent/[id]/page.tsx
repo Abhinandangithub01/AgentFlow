@@ -105,23 +105,31 @@ export default function AgentDetailPage() {
 
   // Fetch activities from API
   useEffect(() => {
-    if (!user || !agentId) return;
+    if (!user || !agentId || !agent) return; // Wait for agent to load first
+
+    let isMounted = true; // Prevent state updates after unmount
 
     const fetchActivities = async () => {
       setLoadingActivities(true);
       try {
         const res = await fetch(`/api/agents/${agentId}/activity`);
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
           console.log('[Agent Detail] Fetched activities:', data);
           setActivities(data.activities || []);
+        } else if (!isMounted) {
+          console.log('[Agent Detail] Component unmounted, skipping activity update');
         } else {
           console.error('[Agent Detail] Failed to fetch activities');
         }
       } catch (error) {
-        console.error('[Agent Detail] Error fetching activities:', error);
+        if (isMounted) {
+          console.error('[Agent Detail] Error fetching activities:', error);
+        }
       } finally {
-        setLoadingActivities(false);
+        if (isMounted) {
+          setLoadingActivities(false);
+        }
       }
     };
 
@@ -129,8 +137,12 @@ export default function AgentDetailPage() {
     
     // Refresh activities every 30 seconds
     const interval = setInterval(fetchActivities, 30000);
-    return () => clearInterval(interval);
-  }, [user, agentId]);
+    
+    return () => {
+      isMounted = false; // Cleanup on unmount
+      clearInterval(interval);
+    };
+  }, [user, agentId, agent]);
 
   const handlePause = async () => {
     setIsPausing(true);
