@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { google } from 'googleapis';
-import { tokenVault } from '@/lib/token-vault';
+import { tokenVault } from '@/lib/improved-token-manager';
 import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
 
 // Force dynamic rendering
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Gmail tokens received successfully');
 
-    // Store tokens in Token Vault
+    // Store tokens using improved token manager
     try {
       await tokenVault.storeOAuthToken(
         session.user.sub,
@@ -76,14 +76,14 @@ export async function GET(request: NextRequest) {
         {
           accessToken: tokens.access_token,
           refreshToken: tokens.refresh_token || '',
-          expiresIn: tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600,
+          expiresAt: tokens.expiry_date || undefined,
           tokenType: 'Bearer',
           scope: tokens.scope || '',
         }
       );
-      console.log('Tokens stored in Token Vault');
+      console.log('[Gmail OAuth] ✅ Tokens stored securely');
     } catch (error: any) {
-      console.log('Token vault storage skipped (local dev):', error.message);
+      console.log('[Gmail OAuth] ⚠️ Token storage failed:', error.message);
     }
 
     // Store connection record (skip if AWS not configured - local dev)

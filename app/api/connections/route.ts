@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
-import { tokenVault } from '@/lib/token-vault';
+import { tokenVault } from '@/lib/improved-token-manager';
 
 // Get all connections for user
 export async function GET(request: NextRequest) {
@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Always check Token Vault as well (for redundancy)
-    console.log('[Connections API] Checking Token Vault for all services...');
-    const services = ['gmail', 'slack', 'google-calendar', 'notion', 'twitter', 'linkedin'];
+    console.log('[Connections API] Checking Token Vault for supported services...');
+    const services: ('gmail' | 'slack')[] = ['gmail', 'slack'];
     const vaultConnections = [];
 
     for (const service of services) {
@@ -100,8 +100,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Service is required' }, { status: 400 });
     }
 
+    // Validate service type
+    if (service !== 'gmail' && service !== 'slack') {
+      return NextResponse.json({ error: 'Invalid service' }, { status: 400 });
+    }
+
     // Revoke tokens
-    await tokenVault.revokeToken(session.user.sub, service);
+    await tokenVault.revokeToken(session.user.sub, service as 'gmail' | 'slack');
 
     // Delete connection record
     await DynamoDBService.delete(TABLES.CONNECTIONS, {

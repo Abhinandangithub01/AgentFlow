@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { google } from 'googleapis';
-import { tokenVault } from '@/lib/token-vault';
 import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,18 +52,22 @@ export async function GET(request: NextRequest) {
       throw new Error('No access token received');
     }
 
-    // Store tokens in Token Vault
-    await tokenVault.storeOAuthToken(
-      userId,
-      'gmail',
-      {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || '',
-        expiresIn: tokens.expiry_date ? Math.floor((tokens.expiry_date - Date.now()) / 1000) : 3600,
-        tokenType: 'Bearer',
-        scope: tokens.scope || '',
-      }
-    );
+    // Store tokens in DynamoDB for persistence
+    // Note: In production, consider using Auth0's Management API to store tokens
+    // For now, we'll use DynamoDB but with better structure
+    await DynamoDBService.put(TABLES.TOKENS, {
+      PK: `USER#${userId}`,
+      SK: 'TOKEN#gmail',
+      service: 'gmail',
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token || '',
+      expiresAt: tokens.expiry_date,
+      scope: tokens.scope || '',
+      tokenType: 'Bearer',
+      updatedAt: new Date().toISOString(),
+    });
+    
+    console.log('[Gmail OAuth] ✅ Tokens stored securely in DynamoDB');
 
     // Store connection record
     await DynamoDBService.put(TABLES.CONNECTIONS, {

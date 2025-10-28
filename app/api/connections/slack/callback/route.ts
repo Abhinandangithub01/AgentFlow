@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { tokenVault } from '@/lib/token-vault';
+import { tokenVault } from '@/lib/improved-token-manager';
 import DynamoDBService, { TABLES } from '@/lib/db/dynamodb';
 
 export async function GET(request: NextRequest) {

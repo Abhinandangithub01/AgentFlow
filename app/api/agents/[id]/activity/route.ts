@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { google } from 'googleapis';
-import { tokenVault } from '@/lib/token-vault';
+import { tokenVault } from '@/lib/improved-token-manager';
 import { agentManager } from '@/lib/agent-manager';
 import { AIEmailProcessor } from '@/lib/ai/email-processor';
 
